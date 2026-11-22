@@ -2,6 +2,7 @@
    system fonts only, zero external assets. */
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 :root {
   --paper: #f4f1ea;

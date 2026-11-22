@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BrailleCraft — UEB Translator, ADA Tactile Plaque Studio and Perkins Trainer</title>
+<meta name="description" content="Offline UEB Grade 1 and 2 braille translator, ADA s703.3 tactile STL and SVG plaque generator, and a 6-key Perkins chord trainer. Zero dependencies, 100 percent client-side.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b2430'/%3E%3Cg fill='%23e8a33d'%3E%3Ccircle cx='21' cy='16' r='6'/%3E%3Ccircle cx='21' cy='32' r='6'/%3E%3Ccircle cx='21' cy='48' r='6'/%3E%3Ccircle cx='43' cy='16' r='6'/%3E%3C/g%3E%3Ccircle cx='43' cy='32' r='6' fill='none' stroke='%23636f80' stroke-width='2'/%3E%3Ccircle cx='43' cy='48' r='6' fill='none' stroke='%23636f80' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <g class="bm-raised"><circle cx="21" cy="16" r="7"/><circle cx="21" cy="32" r="7"/><circle cx="21" cy="48" r="7"/><circle cx="43" cy="16" r="7"/></g>
+      <g class="bm-ghost"><circle cx="43" cy="32" r="7"/><circle cx="43" cy="48" r="7"/></g>
+    </svg>
+    <h1 class="brand-title">BrailleCraft</h1>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Studio sections">
+    <button class="tab" role="tab" id="tab-studio" aria-controls="panel-studio" aria-selected="true">Plaque Studio</button>
+    <button class="tab" role="tab" id="tab-trainer" aria-controls="panel-trainer" aria-selected="false" tabindex="-1">Chord Trainer</button>
+    <button class="tab" role="tab" id="tab-tests" aria-controls="panel-tests" aria-selected="false" tabindex="-1">Self-Tests</button>
+  </nav>
+  <div class="top-actions">
+    <button id="muteToggle" class="icon-btn" aria-pressed="false" title="Toggle sound feedback">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-spk" d="M4 9v6h4l5 4V5L8 9H4z"/><path class="ic-waves" d="M16 8.5a5 5 0 010 7M18.5 6a9 9 0 010 12"/><path class="ic-slash" d="M4 4l16 16"/></svg>
+      <span class="sr">Sound</span>
+    </button>
+    <button id="themeToggle" class="icon-btn" aria-pressed="false" title="Toggle dark theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="ic-sun" cx="12" cy="12" r="4.4"/><path class="ic-rays" d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2L19 19M19 5l-1.8 1.8M6.8 17.2L5 19"/><path class="ic-moon" d="M20 14.5A8.5 8.5 0 119.5 4a7 7 0 0010.5 10.5z"/></svg>
+      <span class="sr">Theme</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- ============================ STUDIO ============================ -->
+  <section id="panel-studio" role="tabpanel" aria-labelledby="tab-studio">
+    <div class="studio-grid">
+      <div class="card input-card">
+        <div class="card-head"><h2>Plaque text</h2></div>
+        <label class="fld-label sr" for="srcText">Text to emboss</label>
+        <textarea id="srcText" rows="3" maxlength="240" spellcheck="false" autocomplete="off">STEM CLUB ROOM 204</textarea>
+
+        <div class="fld-row">
+          <div class="seg" role="group" aria-label="Braille grade">
+            <button class="seg-btn" id="grade1" aria-pressed="false">Grade 1</button>
+            <button class="seg-btn" id="grade2" aria-pressed="true">Grade 2</button>
+          </div>
+          <label class="maxcols">Cells per line
+            <input id="maxCols" type="number" min="4" max="40" step="1" value="24" inputmode="numeric">
+          </label>
+        </div>
+
+        <div class="preset-block">
+          <span class="fld-label">Signage presets</span>
+          <div class="preset-chips" id="presetChips" role="group" aria-label="Load a signage preset"></div>
+          <p class="preset-note" id="presetNote" aria-live="polite"></p>
+        </div>
+
+        <dl class="metrics" aria-label="Translation metrics">
+          <div class="metric"><dt>Cells</dt><dd id="mCells">0</dd></div>
+          <div class="metric"><dt>Saved</dt><dd id="mSaved">0</dd></div>
+          <div class="metric"><dt>Plate</dt><dd id="mPlate">0 mm</dd></div>
+          <div class="metric"><dt>Dots</dt><dd id="mDots">0</dd></div>
+        </dl>
+
+        <div class="actions">
+          <button id="dlStl" class="btn primary">Download .stl</button>
+          <button id="dlSvg" class="btn">Download .svg</button>
+          <button id="copyBraille" class="btn">Copy braille</button>
+          <button id="shareLink" class="btn">Share link</button>
+        </div>
+        <p class="copied" id="copied" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="card preview-card">
+        <div class="card-head preview-head">
+          <h2>Tactile preview</h2>
+          <div class="seg seg-sm" role="group" aria-label="Preview mode">
+            <button class="seg-btn" id="view2d" aria-pressed="true">Blueprint</button>
+            <button class="seg-btn" id="view3d" aria-pressed="false">Relief 3D</button>
+          </div>
+        </div>
+        <div class="stage" id="stage">
+          <div id="svgStage" class="svg-stage"></div>
+          <canvas id="isoCanvas" class="iso-canvas" hidden></canvas>
+        </div>
+        <div class="tilt-row" id="tiltRow" hidden>
+          <label for="tilt">Tilt</label>
+          <input type="range" id="tilt" min="-60" max="60" value="28" step="1">
+          <output id="tiltOut" for="tilt">28&deg;</output>
+        </div>
+        <div class="inspector" id="inspector" aria-live="polite">
+          <div class="insp-idle">Hover, touch or keyboard-focus a cell on the blueprint to inspect it.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card strip-card">
+      <div class="card-head"><h2>Braille output</h2><span class="legend" id="legend"></span></div>
+      <p class="braille-out" id="brailleOut" aria-label="Braille unicode output"></p>
+    </div>
+  </section>
+
+  <!-- ============================ TRAINER ============================ -->
+  <section id="panel-trainer" role="tabpanel" aria-labelledby="tab-trainer" hidden>
+    <div class="trainer-grid">
+      <div class="card lesson-card">
+        <div class="card-head"><h2>Lessons</h2></div>
+        <div class="lesson-list" id="lessonList" role="group" aria-label="Choose a lesson"></div>
+        <p class="lesson-blurb" id="lessonBlurb"></p>
+
+        <div class="prompt-zone">
+          <div class="prompt-label" id="promptLabel">Emboss this</div>
+          <div class="prompt-text" id="promptText" aria-live="polite">&mdash;</div>
+          <div class="prompt-target">
+            <span class="prompt-braille" id="promptBraille"></span>
+            <span class="prompt-hint" id="promptHint"></span>
+          </div>
+          <div class="progress"><div class="progress-bar" id="lessonProgress"></div></div>
+        </div>
+
+        <dl class="metrics trainer-metrics" aria-label="Trainer statistics">
+          <div class="metric"><dt>Accuracy</dt><dd id="tAcc">100%</dd></div>
+          <div class="metric"><dt>Cells/min</dt><dd id="tCpm">0</dd></div>
+          <div class="metric"><dt>WPM</dt><dd id="tWpm">0</dd></div>
+          <div class="metric"><dt>Streak</dt><dd id="tStreak">0</dd></div>
+        </dl>
+        <div class="actions">
+          <button id="restartLesson" class="btn">Restart lesson</button>
+          <button id="skipItem" class="btn">Skip</button>
+        </div>
+        <ol class="log" id="trainerLog" aria-label="Recent chords"></ol>
+      </div>
+
+      <div class="card pad-card" id="keypad" tabindex="0" role="application"
+           aria-label="Perkins six-key pad. Hold F D S for left dots, J K L for right dots, release together to emboss a cell, Space for blank.">
+        <div class="pad-hands">
+          <div class="hand" aria-label="Left hand dots 1 2 3">
+            <button class="keycap" data-key="f" aria-label="key F, dot 1"><span class="keycap-dot" data-dot="1"></span><span class="keycap-name">F</span></button>
+            <button class="keycap" data-key="d" aria-label="key D, dot 2"><span class="keycap-dot" data-dot="2"></span><span class="keycap-name">D</span></button>
+            <button class="keycap" data-key="s" aria-label="key S, dot 3"><span class="keycap-dot" data-dot="3"></span><span class="keycap-name">S</span></button>
+          </div>
+          <div class="cellview">
+            <div class="cellgrid" id="cellgrid" aria-hidden="true">
+              <span class="cg" data-g="1"></span><span class="cg" data-g="4"></span>
+              <span class="cg" data-g="2"></span><span class="cg" data-g="5"></span>
+              <span class="cg" data-g="3"></span><span class="cg" data-g="6"></span>
+            </div>
+            <div class="cellchar" id="cellchar">&nbsp;</div>
+            <div class="cellstate" id="cellstate">hold keys, release to emboss</div>
+          </div>
+          <div class="hand" aria-label="Right hand dots 4 5 6">
+            <button class="keycap" data-key="j" aria-label="key J, dot 4"><span class="keycap-dot" data-dot="4"></span><span class="keycap-name">J</span></button>
+            <button class="keycap" data-key="k" aria-label="key K, dot 5"><span class="keycap-dot" data-dot="5"></span><span class="keycap-name">K</span></button>
+            <button class="keycap" data-key="l" aria-label="key L, dot 6"><span class="keycap-dot" data-dot="6"></span><span class="keycap-name">L</span></button>
+          </div>
+        </div>
+        <div class="pad-foot">
+          <button class="keycap spacebar" id="spaceBtn" aria-label="Space, blank cell"><span class="keycap-name">SPACE</span></button>
+        </div>
+        <p class="pad-hint">Chord like a real brailler: hold every dot key at once, then release. <kbd>Space</kbd> embosses a blank cell. Touch users can hold the keycaps.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ TESTS ============================ -->
+  <section id="panel-tests" role="tabpanel" aria-labelledby="tab-tests" hidden>
+    <div class="card tests-card">
+      <div class="card-head">
+        <h2>In-page verification</h2>
+        <button id="runTests" class="btn primary">Run Self-Tests</button>
+      </div>
+      <p class="tests-blurb">The same invariants the CI suite runs in Node, executed live in this page against the shipping modules: UEB vectors, ADA pitch bands, STL watertightness, chord mapping and hash recovery.</p>
+      <div class="test-summary" id="testSummary" role="status" aria-live="polite">Not run yet.</div>
+      <ol class="test-list" id="testResults"></ol>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Zero dependencies. 100% offline. UEB (ICEB 2024) + ADA 2010 &sect;703.3 / Marburg Medium.</span>
+</footer>
+
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

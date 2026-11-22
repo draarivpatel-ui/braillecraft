@@ -1,0 +1,13 @@
+{
+  "name": "braillecraft",
+  "version": "1.0.0",
+  "description": "Offline UEB braille translator, ADA tactile STL/SVG plaque generator, and 6-key Perkins chord trainer. Zero dependencies, 100% client-side.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test test/",
+    "browser:check": "node scripts/browser-check.mjs"
+  }
+}

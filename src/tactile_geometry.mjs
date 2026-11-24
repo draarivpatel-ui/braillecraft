@@ -45,6 +45,7 @@ export function layoutPlaque(tokens, { maxCols = 32, spec = ADA } = {}) {
   let rowLen = 0;
   const flush = () => { if (row.length) rows.push(row); row = []; rowLen = 0; };
   for (const g of groups) {
+    if (g.isSpace && row.length === 0) continue; // never lead a row with a blank cell
     if (rowLen + g.masks.length > maxCols && row.length) {
       // do not leave a leading space on the next row
       if (g.isSpace) { flush(); continue; }

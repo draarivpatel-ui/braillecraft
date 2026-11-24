@@ -45,7 +45,7 @@ export const LESSONS = [
       ...[...'abcde'].map(ch => ({ prompt: ch.toUpperCase(), hint: `letter ${ch}`, cells: [LETTER_MASK[ch]] })),
       { prompt: 'SPACE', hint: 'press Space for a blank cell', cells: [0] },
       ...[...'fghij'].map(ch => ({ prompt: ch.toUpperCase(), hint: `letter ${ch}`, cells: [LETTER_MASK[ch]] })),
-      { prompt: 'ADA', hint: 'three-letter caps word', cells: [CAP, LETTER_MASK.a, CAP, LETTER_MASK.d, CAP, LETTER_MASK.a] },
+      { prompt: 'ADA', hint: 'three-letter caps word', cells: [CAP, CAP, ...cellsFromText('ada')] },
       ...[...'klmno'].map(ch => ({ prompt: ch.toUpperCase(), hint: `letter ${ch}`, cells: [LETTER_MASK[ch]] })),
       ...[...'pqrst'].map(ch => ({ prompt: ch.toUpperCase(), hint: `letter ${ch}`, cells: [LETTER_MASK[ch]] })),
       ...[...'uvwxyz'].map(ch => ({ prompt: ch.toUpperCase(), hint: `letter ${ch}`, cells: [LETTER_MASK[ch]] }))

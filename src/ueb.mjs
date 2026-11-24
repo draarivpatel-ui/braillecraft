@@ -240,7 +240,9 @@ export function encodeUEB(text, { grade = 2 } = {}) {
     if (unit.kind === 'word') {
       const word = unit.text;
       const letters = word.replace(/'/g, '');
-      const allCaps = letters.length >= 2 && letters === letters.toUpperCase() && /[A-Z]/.test(letters);
+      // caps-word applies to letters only: digits in the string ("3D", "A1")
+      // must take the mixed path so they emit numeric-mode cells
+      const allCaps = letters.length >= 2 && /^[A-Z]+$/.test(letters);
 
       if (grade >= 2 && /^[a-z]+$/.test(word) && ALPHABETIC_WORDSIGNS[word]) {
         push([LETTER_MASK[ALPHABETIC_WORDSIGNS[word]]], word, 'alphabetic-wordsign');
@@ -437,11 +439,14 @@ export function decodeG1(input) {
 
     if (MASK_TO_LETTER[m] !== undefined) {
       const l = MASK_TO_LETTER[m];
-      if (numeric && !literalNext) {
+      // In numeric mode only a-j read as digits; a k-z letter (or a capped
+      // letter, which cannot be a digit) ends numeric mode.
+      if (numeric && !literalNext && !capNext && !capsWord && LETTER_TO_DIGIT[l] !== undefined) {
         out += LETTER_TO_DIGIT[l];
       } else {
         out += (capNext || capsWord) ? l.toUpperCase() : l;
         capNext = false;
+        numeric = false;
       }
       literalNext = false;
       i++;
@@ -449,7 +454,15 @@ export function decodeG1(input) {
     }
     // single-cell punctuation
     const single = DECODE_PAIRS.find(e => e.cells.length === 1 && e.cells[0] === m);
-    if (single) { out += single.ch === '\u201c' ? '?' : single.ch; numeric = false; i++; continue; }
+    if (single) {
+      out += single.ch === '\u201c' ? '?' : single.ch;
+      // a comma or period inside a number keeps numeric mode when a digit
+      // cell follows ("1,000", "3.5"); any other use ends it
+      const keepsNumeric = (single.ch === ',' || single.ch === '.')
+        && numeric && LETTER_TO_DIGIT[MASK_TO_LETTER[cells[i + 1]]] !== undefined;
+      if (!keepsNumeric) numeric = false;
+      i++; continue;
+    }
     out += '\ufffd';
     i++;
   }

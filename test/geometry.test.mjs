@@ -53,6 +53,10 @@ test('wrapping does not split words when they fit', () => {
 test('leading space cells are not left after a wrap', () => {
   for (const r of wrapLayout.rows) assert.notEqual(r[0].mask, 0);
 });
+test('a run of spaces at a wrap boundary still leaves no leading blank', () => {
+  const lay = layoutPlaque(encode('AA   BB', { grade: 1 }).tokens, { maxCols: 5 });
+  for (const r of lay.rows) assert.notEqual(r[0].mask, 0);
+});
 test('four mounting holes at the corners', () => {
   assert.equal(layout.holes.length, 4);
   for (const h of layout.holes) {

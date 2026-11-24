@@ -5,7 +5,7 @@ import {
   KEY_TO_DOT, DOT_TO_KEY, chordToMask, maskToChordKeys,
   LESSONS, lessonById, PerkinsSession, describeChord
 } from '../src/perkins.mjs';
-import { LETTER_MASK, STRONG_WORDSIGNS, STRONG_GROUPSIGNS, NUM, CAP } from '../src/ueb.mjs';
+import { LETTER_MASK, STRONG_WORDSIGNS, STRONG_GROUPSIGNS, NUM, CAP, encode } from '../src/ueb.mjs';
 
 // ---- key map --------------------------------------------------------------------
 for (const [key, dot] of Object.entries(KEY_TO_DOT)) {
@@ -66,6 +66,10 @@ test('lesson 1 covers the whole alphabet', () => {
   const letters = LESSONS[0].items.filter(i => i.cells.length === 1 && i.prompt.length === 1)
     .map(i => i.prompt.toLowerCase());
   for (const ch of 'abcdefghijklmnopqrstuvwxyz') assert.ok(letters.includes(ch), ch);
+});
+test('lesson item cells match the UEB encoder for all-letter words', () => {
+  const ada = LESSONS[0].items.find(i => i.prompt === 'ADA');
+  assert.deepEqual(ada.cells, encode('ADA', { grade: 1 }).cells);
 });
 test('numbers lesson includes the numeric indicator', () => {
   const nums = LESSONS[1].items.flatMap(i => i.cells);

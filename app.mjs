@@ -521,7 +521,7 @@ document.addEventListener('keydown', e => {
   if (e.repeat) return;
   const dot = KEY_TO_DOT[e.key.toLowerCase()];
   if (dot) { e.preventDefault(); pressDot(dot); }
-  else if (e.key === ' ') { e.preventDefault(); commitChord(true); }
+  else if (e.key === ' ' && tag !== 'BUTTON') { e.preventDefault(); commitChord(true); }
 });
 document.addEventListener('keyup', e => {
   if ($('panel-trainer').hidden) return;
@@ -533,6 +533,9 @@ for (const b of document.querySelectorAll('.keycap[data-key]')) {
   const key = b.dataset.key;
   const dot = KEY_TO_DOT[key];
   b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch { /* synthetic pointers */ } b.classList.add('held'); pressDot(dot); });
+  // keyboard activation (Enter/Space on a focused keycap) fires click with
+  // detail 0; pointer clicks report detail >= 1 and already ran press/release
+  b.addEventListener('click', e => { if (e.detail === 0) { pressDot(dot); releaseDot(dot); } });
   const up = e => { if (b.classList.contains('held')) { b.classList.remove('held'); releaseDot(dot); } };
   b.addEventListener('pointerup', up);
   b.addEventListener('pointercancel', up);

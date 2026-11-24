@@ -68,6 +68,18 @@ test('a-j word after numeric word boundary is safe', () => {
   const c = cells('5 apples', 1);
   assert.deepEqual(c, [NUM, LETTER_MASK.e, 0, LETTER_MASK.a, LETTER_MASK.p, LETTER_MASK.p, LETTER_MASK.l, LETTER_MASK.e, LETTER_MASK.s]);
 });
+test('caps word requires letters only: digits force the mixed path', () => {
+  for (const s of ['3D', 'A1', 'ROOM204', 'B2B', 'ABC123']) {
+    const c = cells(s, 1);
+    for (const m of c) assert.ok(Number.isInteger(m) && m >= 0 && m <= 0x3f, `${s} emitted ${m}`);
+  }
+});
+test("'3D' is number + grade-1 + cap + d, not a caps word", () => {
+  assert.deepEqual(cells('3D', 1), [NUM, LETTER_MASK.c, G1, CAP, LETTER_MASK.d]);
+});
+test("'A1' is cap + a + number, not a caps word", () => {
+  assert.deepEqual(cells('A1', 1), [CAP, LETTER_MASK.a, NUM, LETTER_MASK.a]);
+});
 
 // ---- capitals ----------------------------------------------------------------
 test('single capital takes one cap indicator', () => {
@@ -201,7 +213,9 @@ const RT_CORPUS = [
   'The Quick Brown Fox', 'Grade 1', 'forty two 42', 'Ms Lee', 'It is 5',
   'Do not open', 'half past 9', 'TEST 100', 'x', 'Mc', 'OK', '3 apples',
   'Cost is 3', 'lab bench 7', 'dot 6', 'see section 9', 'a-b',
-  'one, two, three', 'wait!', 'really?', '(paren)', '[bracket]'
+  'one, two, three', 'wait!', 'really?', '(paren)', '[bracket]',
+  '3m', '3mx', '3M', '1,000', '3.5', '1.5.7', '(3,4)', '1,k',
+  '3D', '3Dx', 'A1', 'B2B', 'ROOM204', 'ABC123', 'R2D2', '12ab', 'x2'
 ];
 for (const s of RT_CORPUS) {
   test(`G1 round trip ${JSON.stringify(s)}`, () => {
@@ -210,6 +224,22 @@ for (const s of RT_CORPUS) {
 }
 test('decodeG1 accepts unicode braille strings', () => {
   assert.equal(decodeG1(cellsToUnicode(encode('abc', { grade: 1 }).cells)), 'abc');
+});
+test('decodeG1: k-z letter after a number ends numeric mode', () => {
+  assert.equal(decodeG1([NUM, LETTER_MASK.c, LETTER_MASK.m]), '3m');
+  assert.equal(decodeG1([NUM, LETTER_MASK.c, LETTER_MASK.m, LETTER_MASK.x]), '3mx');
+});
+test('decodeG1: capitalized k-z letter after a number is a letter, not a digit', () => {
+  assert.equal(decodeG1([NUM, LETTER_MASK.c, CAP, LETTER_MASK.m]), '3M');
+});
+test('decodeG1: numeric comma keeps numeric mode before a digit', () => {
+  assert.equal(decodeG1([NUM, LETTER_MASK.a, 0x02, LETTER_MASK.j, LETTER_MASK.j, LETTER_MASK.j]), '1,000');
+});
+test('decodeG1: decimal point keeps numeric mode before a digit', () => {
+  assert.equal(decodeG1([NUM, LETTER_MASK.c, 0x32, LETTER_MASK.e]), '3.5');
+});
+test('decodeG1: comma before a non-digit ends numeric mode', () => {
+  assert.equal(decodeG1([NUM, LETTER_MASK.a, 0x02, LETTER_MASK.k]), '1,k');
 });
 test('decodeG1 throws on non-braille input', () => {
   assert.throws(() => decodeG1('abc'));

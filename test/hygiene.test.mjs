@@ -59,6 +59,18 @@ test('every interactive button has an accessible name path', () => {
 test('theme toggle and mute toggle exist', () => {
   assert.ok(html.includes('themeToggle') && html.includes('muteToggle'));
 });
+test('trainer space handler does not steal Space from focused buttons', () => {
+  assert.ok(/e\.key === ' ' && tag !== 'BUTTON'/.test(app),
+    'space keydown must let focused buttons activate natively');
+});
+test('keycap buttons are keyboard-activatable (click detail 0 path)', () => {
+  const keycapBlock = app.slice(
+    app.indexOf("querySelectorAll('.keycap[data-key]')"),
+    app.indexOf("$('spaceBtn')")
+  );
+  assert.ok(/b\.addEventListener\('click'/.test(keycapBlock), 'keycap needs a click listener');
+  assert.ok(/e\.detail === 0/.test(keycapBlock), 'keycap click must accept keyboard-initiated clicks only');
+});
 test('dark theme is implemented via data-theme', () => {
   assert.ok(css.includes('html[data-theme="dark"]'));
 });

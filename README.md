@@ -45,7 +45,7 @@ BrailleCraft is a tactile engineering studio that runs entirely in the browser w
 ## Testing
 
 ```bash
-npm test              # 471 node --test cases: UEB, geometry, STL, SVG, presets, perkins, hygiene
+npm test              # 500 node --test cases: UEB, geometry, STL, SVG, presets, perkins, hygiene
 npm run browser:check # real Chrome audit at 1440x900 and 390x844 (40 checks, 0 console/page errors,
                       # 0 external requests, 0 horizontal overflow) + screenshots
 ```
@@ -63,7 +63,7 @@ src/tactile_geometry.mjs   ADA metrology, layout, watertight STL, mm-true SVG
 src/perkins.mjs            Perkins session state machine, lessons, audio clicker
 src/presets.mjs            signage presets + URL hash state codec
 src/selftest.mjs           in-page invariant checks
-test/                      471 node:test cases
+test/                      500 node:test cases
 scripts/serve.mjs          local static server
 scripts/browser-check.mjs  headless Chrome audit + screenshots
 screenshots/               desktop.png (1440x900), mobile.png (390x844)

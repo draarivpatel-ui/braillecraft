@@ -14,15 +14,15 @@ export const PRESETS = [
     id: 'lab-eyewash',
     title: 'Science Lab Eyewash',
     text: 'EYEWASH STATION',
-    grade: 1,
+    grade: 2,
     caption: 'Eyewash',
-    note: 'Safety signage stays Grade 1 so every reader decodes it letter by letter.'
+    note: 'Safety signage; ADA 703.3 calls for contracted Grade 2 Braille.'
   },
   {
     id: 'restroom',
     title: 'Accessible Restroom',
     text: 'RESTROOM',
-    grade: 1,
+    grade: 2,
     caption: 'Restroom',
     note: 'Single-word ADA room sign with mounting-hole drill callouts.'
   },
@@ -38,9 +38,9 @@ export const PRESETS = [
     id: 'exit-stairwell',
     title: 'Emergency Exit Stairwell',
     text: 'EXIT STAIRWELL B',
-    grade: 1,
+    grade: 2,
     caption: 'Exit Stairwell B',
-    note: 'Egress signage; uncontracted Grade 1 for unambiguous egress reading.'
+    note: 'Egress signage; ADA 703.3 calls for contracted Grade 2 Braille.'
   }
 ];
 

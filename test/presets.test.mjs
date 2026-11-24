@@ -24,6 +24,13 @@ for (const p of PRESETS) {
 test('preset ids are unique', () => {
   assert.equal(new Set(PRESETS.map(p => p.id)).size, PRESETS.length);
 });
+
+test('safety-sign presets default to Grade 2 per ADA 703.3', () => {
+  for (const id of ['lab-eyewash', 'restroom', 'exit-stairwell']) {
+    assert.equal(presetById(id).grade, 2, id);
+  }
+  for (const p of PRESETS) assert.equal(p.grade, 2, `ADA signage preset ${p.id} must be contracted Grade 2`);
+});
 test('presetById returns null for unknown', () => {
   assert.equal(presetById('nope'), null);
 });

@@ -1,4 +1,4 @@
-// presets.mjs — built-in community signage templates and the URL-hash
+// presets.mjs: built-in community signage templates and the URL-hash
 // shareable state codec (no dependencies, browser and Node safe).
 
 export const PRESETS = [
@@ -80,6 +80,7 @@ export function encodeHash(state) {
   if (state.muted) p.set('m', '1');
   if (state.theme) p.set('th', state.theme === 'dark' ? 'd' : 'l');
   if (typeof state.text === 'string') p.set('t', b64urlEncode(state.text));
+  if (state.kit && typeof state.kit === 'object') p.set('k', b64urlEncode(JSON.stringify(state.kit)));
   return '#' + p.toString();
 }
 
@@ -91,7 +92,7 @@ export function decodeHash(hash) {
     const p = new URLSearchParams(h);
     if (p.has('tab')) {
       const t = p.get('tab');
-      if (['studio', 'trainer', 'tests'].includes(t)) out.tab = t;
+      if (['studio', 'kit', 'trainer', 'tests'].includes(t)) out.tab = t;
     }
     if (p.has('g')) {
       const g = Number(p.get('g'));
@@ -109,6 +110,11 @@ export function decodeHash(hash) {
       if (th === 'd' || th === 'l') out.theme = th === 'd' ? 'dark' : 'light';
     }
     if (p.has('t')) out.text = b64urlDecode(p.get('t'));
+    if (p.has('k')) {
+      // The kit is returned raw; callers pass it through normalizeKit. A
+      // broken kit drops only itself, not the rest of the hash.
+      try { out.kit = JSON.parse(b64urlDecode(p.get('k'))); } catch { /* ignore bad kit */ }
+    }
   } catch {
     return {};
   }

@@ -1,4 +1,4 @@
-// selftest.mjs — in-browser verification suite for judges.
+// selftest.mjs: in-browser verification suite for judges.
 // Runs the same invariants as the Node test suite against the live modules
 // and reports every check with a human-readable pass/fail line.
 
@@ -12,6 +12,7 @@ import {
 } from './tactile_geometry.mjs';
 import { LESSONS, PerkinsSession, KEY_TO_DOT, maskToChordKeys } from './perkins.mjs';
 import { PRESETS, encodeHash, decodeHash } from './presets.mjs';
+import { kitFromPack, buildKit, packBed, batchMesh, normalizeKit, packKit } from './kit.mjs';
 
 function check(name, fn) {
   try {
@@ -201,6 +202,24 @@ export function runSelfTests() {
     for (const m of r.cells) if (m < 0 || m > 0x3f) throw new Error(`mask ${m}`);
     for (const m of r.cells) for (const d of dotsOf(m)) if (d < 1 || d > 6) throw new Error('dot');
     return `${r.cells.length} cells`;
+  }));
+
+  t.push(check('KIT: classroom batch STL is one watertight bed of every plate', () => {
+    const built = buildKit(kitFromPack('classroom', 2));
+    const bed = packBed(built.signs);
+    const m = batchMesh(built.signs, bed);
+    const w = verifyWatertight(m);
+    if (!w.watertight) throw new Error(`${w.violations} open edges`);
+    if (!bed.fitsBed) throw new Error('does not fit the bed');
+    eq(bed.placements.length, built.totals.plates, 'plates on bed');
+    return `${built.totals.plates} plates, ${m.triangleCount} triangles`;
+  }));
+  t.push(check('KIT: kit and volunteer roles survive the share link', () => {
+    const kit = kitFromPack('center', 1);
+    kit.roles = { check: 'Sam' };
+    const back = normalizeKit(decodeHash(encodeHash({ tab: 'kit', kit: packKit(kit) })).kit);
+    eq(JSON.stringify(back), JSON.stringify(kit), 'kit');
+    return `${back.items.length} signs`;
   }));
 
   const passed = t.filter(x => x.pass).length;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BrailleCraft — UEB Translator, ADA Tactile Plaque Studio and Perkins Trainer</title>
+<title>BrailleCraft</title>
 <meta name="description" content="Offline UEB Grade 1 and 2 braille translator, ADA s703.3 tactile STL and SVG plaque generator, and a 6-key Perkins chord trainer. Zero dependencies, 100 percent client-side.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
@@ -21,10 +21,15 @@
   </div>
   <nav class="tabs" role="tablist" aria-label="Studio sections">
     <button class="tab" role="tab" id="tab-studio" aria-controls="panel-studio" aria-selected="true">Plaque Studio</button>
+    <button class="tab" role="tab" id="tab-kit" aria-controls="panel-kit" aria-selected="false" tabindex="-1">Community Kit</button>
     <button class="tab" role="tab" id="tab-trainer" aria-controls="panel-trainer" aria-selected="false" tabindex="-1">Chord Trainer</button>
     <button class="tab" role="tab" id="tab-tests" aria-controls="panel-tests" aria-selected="false" tabindex="-1">Self-Tests</button>
   </nav>
   <div class="top-actions">
+    <button id="howOpen" class="btn how-btn" aria-haspopup="dialog" aria-controls="howDialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M12 11v6"/><circle class="ic-fill" cx="12" cy="7.4" r="1.3"/></svg>
+      <span class="how-label">How it works</span>
+    </button>
     <button id="muteToggle" class="icon-btn" aria-pressed="false" title="Toggle sound feedback">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-spk" d="M4 9v6h4l5 4V5L8 9H4z"/><path class="ic-waves" d="M16 8.5a5 5 0 010 7M18.5 6a9 9 0 010 12"/><path class="ic-slash" d="M4 4l16 16"/></svg>
       <span class="sr">Sound</span>
@@ -58,13 +63,13 @@
         <div class="preset-block">
           <span class="fld-label">Signage presets</span>
           <div class="preset-chips" id="presetChips" role="group" aria-label="Load a signage preset"></div>
-          <p class="preset-note" id="presetNote" aria-live="polite"></p>
+          <p class="sr" id="presetNote" aria-live="polite"></p>
         </div>
 
         <dl class="metrics" aria-label="Translation metrics">
           <div class="metric"><dt>Cells</dt><dd id="mCells">0</dd></div>
           <div class="metric"><dt>Saved</dt><dd id="mSaved">0</dd></div>
-          <div class="metric"><dt>Plate</dt><dd id="mPlate">0 mm</dd></div>
+          <div class="metric"><dt>Plate in mm</dt><dd id="mPlate">0 mm</dd></div>
           <div class="metric"><dt>Dots</dt><dd id="mDots">0</dd></div>
         </dl>
 
@@ -102,7 +107,63 @@
 
     <div class="card strip-card">
       <div class="card-head"><h2>Braille output</h2><span class="legend" id="legend"></span></div>
-      <p class="braille-out" id="brailleOut" aria-label="Braille unicode output"></p>
+      <div class="braille-cells" id="brailleCells" aria-hidden="true"></div>
+      <p class="sr" id="brailleOut" aria-label="Braille unicode output"></p>
+    </div>
+  </section>
+
+  <!-- ============================ KIT ============================ -->
+  <section id="panel-kit" role="tabpanel" aria-labelledby="tab-kit" hidden>
+    <div class="kit-grid">
+      <div class="card kit-card">
+        <div class="card-head">
+          <h2>Community kit</h2>
+          <div class="seg seg-sm" role="group" aria-label="Kit braille grade">
+            <button class="seg-btn" id="kitG1" aria-pressed="false">Grade 1</button>
+            <button class="seg-btn" id="kitG2" aria-pressed="true">Grade 2</button>
+          </div>
+        </div>
+        <div class="preset-chips" id="kitPacks" role="group" aria-label="Load a sign pack"></div>
+        <ol class="kit-signs" id="kitSigns" aria-label="Signs in this kit"></ol>
+        <form class="kit-add" id="kitAdd">
+          <input id="kitNew" type="text" maxlength="48" autocomplete="off" placeholder="New sign text" aria-label="New sign text">
+          <button class="btn" type="submit">Add sign</button>
+        </form>
+        <dl class="metrics" aria-label="Kit totals">
+          <div class="metric"><dt>Plates</dt><dd id="kPlates">0</dd></div>
+          <div class="metric"><dt>Raised dots</dt><dd id="kDots">0</dd></div>
+          <div class="metric"><dt>PLA</dt><dd id="kGrams">0 g</dd></div>
+          <div class="metric"><dt>Bed used in mm</dt><dd id="kBed">0</dd></div>
+        </dl>
+        <fieldset class="roles">
+          <legend>Who does what</legend>
+          <label>Designs<input id="role-design" type="text" maxlength="32" autocomplete="off" placeholder="First name"></label>
+          <label>Prints<input id="role-print" type="text" maxlength="32" autocomplete="off" placeholder="First name"></label>
+          <label>Checks by touch<input id="role-check" type="text" maxlength="32" autocomplete="off" placeholder="Braille reader"></label>
+          <label>Mounts<input id="role-mount" type="text" maxlength="32" autocomplete="off" placeholder="First name"></label>
+        </fieldset>
+        <div class="actions">
+          <button id="kitStl" class="btn primary">Download batch .stl</button>
+          <button id="kitSvg" class="btn">Download sheet .svg</button>
+          <button id="kitJson" class="btn">Download .json</button>
+          <button id="kitCopy" class="btn">Copy handoff</button>
+          <button id="kitPrint" class="btn">Print handoff</button>
+          <button id="kitShare" class="btn">Share kit link</button>
+        </div>
+        <p class="copied" id="kitStatus" role="status" aria-live="polite"></p>
+      </div>
+      <div class="card handoff-card">
+        <div class="card-head"><h2>Print-shop handoff</h2></div>
+        <pre class="handoff" id="handoffPre"></pre>
+      </div>
+    </div>
+
+    <div class="card cards-card">
+      <div class="card-head">
+        <h2>Study cards</h2>
+        <button id="printCards" class="btn">Print cards</button>
+      </div>
+      <div class="study-grid" id="studyGrid"></div>
     </div>
   </section>
 
@@ -116,7 +177,7 @@
 
         <div class="prompt-zone">
           <div class="prompt-label" id="promptLabel">Emboss this</div>
-          <div class="prompt-text" id="promptText" aria-live="polite">&mdash;</div>
+          <div class="prompt-text" id="promptText" aria-live="polite"></div>
           <div class="prompt-target">
             <span class="prompt-braille" id="promptBraille"></span>
             <span class="prompt-hint" id="promptHint"></span>
@@ -163,7 +224,6 @@
         <div class="pad-foot">
           <button class="keycap spacebar" id="spaceBtn" aria-label="Space, blank cell"><span class="keycap-name">SPACE</span></button>
         </div>
-        <p class="pad-hint">Chord like a real brailler: hold every dot key at once, then release. <kbd>Space</kbd> embosses a blank cell. Touch users can hold the keycaps.</p>
       </div>
     </div>
   </section>
@@ -175,12 +235,57 @@
         <h2>In-page verification</h2>
         <button id="runTests" class="btn primary">Run Self-Tests</button>
       </div>
-      <p class="tests-blurb">The same invariants the CI suite runs in Node, executed live in this page against the shipping modules: UEB vectors, ADA pitch bands, STL watertightness, chord mapping and hash recovery.</p>
       <div class="test-summary" id="testSummary" role="status" aria-live="polite">Not run yet.</div>
       <ol class="test-list" id="testResults"></ol>
     </div>
   </section>
 </main>
+
+<dialog id="howDialog" class="how" aria-labelledby="howTitle">
+  <div class="how-head">
+    <h2 id="howTitle">How BrailleCraft works</h2>
+    <button id="howClose" class="icon-btn" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="how-body">
+    <section>
+      <h3>Who it is for</h3>
+      <p>Students, teachers, makers and volunteers who make tactile signs and learning materials with and for blind and low-vision neighbors. The Community kit turns a hallway of signs into one print job, a handoff sheet that names who designs, prints, checks and mounts, and study cards so sighted classmates learn the braille they are putting on the wall. A braille reader checks every sign by touch before it goes up.</p>
+    </section>
+    <section>
+      <h3>The braille cell</h3>
+      <p>Every cell has six dot positions in two columns. Dots 1, 2 and 3 run down the left column and dots 4, 5 and 6 down the right.</p>
+      <div class="how-cells" id="howCells"></div>
+    </section>
+    <section>
+      <h3>Grade 1 and Grade 2</h3>
+      <p>Grade 1 spells every letter. Grade 2 (contracted) Unified English Braille swaps common words and letter groups for shorter signs, so signs and books take less space. BrailleCraft finds the longest valid match at each position and records which rule produced every cell, which is what the inspector shows when you hover a dot.</p>
+      <table class="how-table" id="howContractions">
+        <thead><tr><th scope="col">Print</th><th scope="col">Grade 1</th><th scope="col">Grade 2</th><th scope="col">Rule</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    <section>
+      <h3>Indicators</h3>
+      <p>Some cells change how the next cells read instead of standing for a letter.</p>
+      <dl class="how-dl" id="howIndicators"></dl>
+    </section>
+    <section>
+      <h3>Tactile sign specs</h3>
+      <dl class="how-dl" id="howSpecs"></dl>
+    </section>
+    <section>
+      <h3>Perkins chords</h3>
+      <p>F, D and S press dots 1, 2 and 3. J, K and L press dots 4, 5 and 6. Hold every key of a cell at once and release together to emboss it, like a real brailler. Space embosses a blank cell, and touch screens can hold the keycaps.</p>
+    </section>
+    <section>
+      <h3>How it was built</h3>
+      <p>Plain HTML, CSS and JavaScript modules with no dependencies, no build step and no network calls. A strict Content Security Policy blocks every outside request. The Self-Tests tab runs the same invariants as the Node test suite inside this page, from UEB vectors and ADA pitch bands to STL watertightness and chord mapping.</p>
+      <p>AI coding assistants (Devin SWE-2 and Claude) helped write the code, tests and docs under Aariv Patel's direction. Every braille rule and dimension shown here is checked by that test suite.</p>
+    </section>
+  </div>
+</dialog>
 
 <footer class="foot">
   <span>Zero dependencies. 100% offline. UEB (ICEB 2024) + ADA 2010 &sect;703.3 / Marburg Medium.</span>

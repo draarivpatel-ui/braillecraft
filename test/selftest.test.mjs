@@ -1,4 +1,4 @@
-// selftest.test.mjs — the in-page suite must pass identically in Node.
+// selftest.test.mjs: the in-page suite must pass identically in Node.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runSelfTests } from '../src/selftest.mjs';

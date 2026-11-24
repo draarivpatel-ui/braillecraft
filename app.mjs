@@ -1,6 +1,6 @@
-// app.mjs — BrailleCraft UI wiring. ES modules only, no dependencies.
+// app.mjs: BrailleCraft UI wiring. ES modules only, no dependencies.
 import {
-  encode, cellsToUnicode, describeCell, maskToUnicode
+  encode, cellsToUnicode, describeCell, maskToUnicode, CAP, NUM, G1
 } from './src/ueb.mjs';
 import {
   ADA, layoutPlaque, buildMesh, toSTL, toSVG
@@ -10,12 +10,18 @@ import {
 } from './src/perkins.mjs';
 import { PRESETS, presetById, encodeHash, decodeHash } from './src/presets.mjs';
 import { runSelfTests } from './src/selftest.mjs';
+import {
+  KIT_PACKS, kitFromPack, normalizeKit, packKit, buildKit, packBed, batchMesh, kitSheetSVG,
+  handoffLines, kitJSON, studyCards, checkAnswer, cleanSignText, cleanRole, clampQty, ROLES,
+  MAX_SIGNS, MAX_QTY, BED_MM
+} from './src/kit.mjs';
 
 const $ = id => document.getElementById(id);
 const state = {
   tab: 'studio', grade: 2, text: 'STEM CLUB ROOM 204', maxCols: 24,
   preset: 'stem-club', lesson: 'home-row', muted: false, theme: null,
-  view3d: false, tilt: 28
+  view3d: false, tilt: 28,
+  kit: kitFromPack('classroom', 2)
 };
 let lastResult = null;
 let lastLayout = null;
@@ -101,14 +107,33 @@ function rerun() {
   lastLayout = layoutPlaque(res.tokens, { maxCols: state.maxCols });
   lastMesh = buildMesh(lastLayout);
   $('brailleOut').textContent = res.unicode || ' ';
+  renderBrailleCells(res.cells);
   $('mCells').textContent = res.cells.length;
   $('mSaved').textContent = `${res.stats.cellsSaved} (${res.stats.savingPct}%)`;
-  $('mPlate').textContent = `${lastLayout.plateW.toFixed(0)}×${lastLayout.plateH.toFixed(0)} mm`;
+  $('mPlate').textContent = `${lastLayout.plateW.toFixed(0)}×${lastLayout.plateH.toFixed(0)}`;
   $('mDots').textContent = lastLayout.dots.length;
   const seen = new Set(res.tokens.map(t => t.rule));
   $('legend').textContent = [...seen].map(r => RULE_LABELS[r] || r).join(' · ');
   if (state.view3d) drawIso(); else renderBlueprint();
   syncHash();
+}
+
+// The output strip draws every cell as six domes (raised dots lit, empty
+// positions as rings) so the braille reads clearly at any font support.
+function renderBrailleCells(cells) {
+  const wrap = $('brailleCells');
+  wrap.textContent = '';
+  // Cells of one word stay on one line; blank cells become word gaps.
+  let word = null;
+  for (const m of cells) {
+    if (m === 0) { word = null; continue; }
+    if (!word) {
+      word = document.createElement('span');
+      word.className = 'cell-word';
+      wrap.appendChild(word);
+    }
+    word.appendChild(cellDots(m, 'dcell dcell-out'));
+  }
 }
 
 function renderBlueprint() {
@@ -366,12 +391,12 @@ $('copyBraille').addEventListener('click', async () => {
   }
 });
 $('shareLink').addEventListener('click', async () => {
-  const url = location.origin === 'null' ? location.href.split('#')[0] + encodeHash(state) : location.href.split('#')[0] + encodeHash(state);
+  const url = location.href.split('#')[0] + encodeHash({ ...state, kit: packKit(state.kit) });
   try {
     await navigator.clipboard.writeText(url);
     flash('share link copied');
   } catch {
-    location.hash = encodeHash(state);
+    location.hash = encodeHash({ ...state, kit: packKit(state.kit) });
     flash('hash updated, copy the address bar');
   }
 });
@@ -389,14 +414,14 @@ function markGrade() {
 $('maxCols').addEventListener('change', () => {
   const v = Math.max(4, Math.min(40, Math.round(Number($('maxCols').value) || 24)));
   $('maxCols').value = String(v);
-  state.maxCols = v; rerun();
+  state.maxCols = v; rerun(); renderKitOutputs();
 });
 
 // preset chips
 const chipEls = new Map();
 for (const p of PRESETS) {
   const b = document.createElement('button');
-  b.className = 'chip'; b.textContent = p.title; b.setAttribute('aria-pressed', 'false');
+  b.className = 'chip'; b.textContent = p.title; b.title = p.note; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => {
     state.preset = p.id; state.text = p.text; state.grade = p.grade;
     $('srcText').value = p.text; markGrade(); markPresets();
@@ -549,12 +574,338 @@ $('skipItem').addEventListener('click', () => {
   showPrompt(); renderTrainerStats();
 });
 
+
+// ------------------------------ community kit -------------------------------
+
+let kitBuilt = null;
+let kitBed = null;
+
+function kitFlash(msg) {
+  const el = $('kitStatus');
+  el.textContent = msg;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 2600);
+}
+
+function rebuildKit() {
+  kitBuilt = buildKit(state.kit, { maxCols: state.maxCols });
+  kitBed = packBed(kitBuilt.signs);
+}
+
+function renderKitPacks() {
+  $('kitPacks').textContent = '';
+  for (const pk of KIT_PACKS) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = pk.title;
+    b.setAttribute('aria-pressed', String(state.kit.pack === pk.id));
+    b.addEventListener('click', () => {
+      const roles = state.kit.roles;
+      state.kit = kitFromPack(pk.id, state.kit.grade);
+      state.kit.roles = roles;
+      renderKitAll();
+      syncHash();
+    });
+    $('kitPacks').appendChild(b);
+  }
+  $('kitG1').setAttribute('aria-pressed', String(state.kit.grade === 1));
+  $('kitG2').setAttribute('aria-pressed', String(state.kit.grade === 2));
+}
+
+// The sign list holds live inputs, so it is rebuilt only when signs are
+// added, removed or replaced; typing updates outputs in place.
+function renderKitList() {
+  const ol = $('kitSigns');
+  ol.textContent = '';
+  state.kit.items.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'kit-sign';
+    const br = document.createElement('span');
+    br.className = 'kit-braille';
+    br.setAttribute('aria-hidden', 'true');
+    const txt = document.createElement('input');
+    txt.type = 'text';
+    txt.maxLength = 48;
+    txt.value = item.text;
+    txt.setAttribute('aria-label', `Sign ${i + 1} text`);
+    txt.addEventListener('input', () => {
+      const v = cleanSignText(txt.value);
+      if (!v) return;
+      item.text = v;
+      state.kit.pack = null;
+      renderKitOutputs();
+      syncHash();
+    });
+    const qty = document.createElement('input');
+    qty.type = 'number';
+    qty.min = '1';
+    qty.max = String(MAX_QTY);
+    qty.value = String(item.qty);
+    qty.className = 'kit-qty';
+    qty.setAttribute('aria-label', `Sign ${i + 1} copies`);
+    qty.addEventListener('change', () => {
+      item.qty = clampQty(qty.value);
+      qty.value = String(item.qty);
+      renderKitOutputs();
+      syncHash();
+    });
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'icon-btn kit-rm';
+    rm.setAttribute('aria-label', `Remove ${item.text}`);
+    rm.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+    rm.addEventListener('click', () => {
+      state.kit.items.splice(i, 1);
+      state.kit.pack = null;
+      renderKitAll();
+      syncHash();
+      ($('kitSigns').querySelectorAll('input[type="text"]')[Math.min(i, state.kit.items.length - 1)] || $('kitNew')).focus();
+    });
+    li.append(txt, qty, rm, br);
+    ol.appendChild(li);
+  });
+  $('kitNew').disabled = state.kit.items.length >= MAX_SIGNS;
+}
+
+function renderKitOutputs() {
+  rebuildKit();
+  const t = kitBuilt.totals;
+  $('kPlates').textContent = t.plates;
+  $('kDots').textContent = t.dots;
+  $('kGrams').textContent = `${t.grams} g`;
+  $('kBed').textContent = kitBed.placements.length ? `${Math.round(kitBed.width)}×${Math.round(kitBed.depth)}` : '0';
+  $('kBed').classList.toggle('warn', !kitBed.fitsBed);
+  const brs = $('kitSigns').querySelectorAll('.kit-braille');
+  kitBuilt.signs.forEach((sg, i) => { if (brs[i]) brs[i].textContent = sg.unicode; });
+  $('handoffPre').textContent = handoffLines(state.kit, kitBuilt, kitBed).join('\n');
+  for (const r of ROLES) {
+    const el = $(`role-${r}`);
+    if (document.activeElement !== el) el.value = state.kit.roles[r] || '';
+  }
+  for (const b of $('kitPacks').querySelectorAll('.chip')) {
+    b.setAttribute('aria-pressed', String(KIT_PACKS.find(p => p.title === b.textContent)?.id === state.kit.pack));
+  }
+  const empty = kitBuilt.signs.length === 0;
+  for (const id of ['kitStl', 'kitSvg', 'kitJson', 'kitCopy', 'kitPrint']) $(id).disabled = empty;
+  renderStudyCards();
+}
+
+function renderKitAll() {
+  renderKitPacks();
+  renderKitList();
+  renderKitOutputs();
+}
+
+function cellDots(mask, cls = 'dcell') {
+  const c = document.createElement('span');
+  c.className = cls;
+  for (const dn of [1, 4, 2, 5, 3, 6]) {
+    const i = document.createElement('i');
+    if (mask & (1 << (dn - 1))) i.className = 'on';
+    c.appendChild(i);
+  }
+  return c;
+}
+
+function renderStudyCards() {
+  const grid = $('studyGrid');
+  grid.textContent = '';
+  const cards = studyCards(state.kit);
+  if (!cards.length) {
+    const p = document.createElement('p');
+    p.className = 'insp-idle';
+    p.textContent = 'Add a sign with a word of two or more letters to get study cards.';
+    grid.appendChild(p);
+    return;
+  }
+  cards.forEach((card, idx) => {
+    const art = document.createElement('article');
+    art.className = 'study-card';
+    const cells = document.createElement('div');
+    cells.className = 'study-cells';
+    cells.setAttribute('role', 'img');
+    cells.setAttribute('aria-label', `Braille card ${idx + 1}: ${card.cells.map(c => `dots ${c.dots.join(' ')}`).join(', ')}`);
+    for (const c of card.cells) cells.appendChild(cellDots(c.mask));
+    const form = document.createElement('form');
+    form.className = 'study-form';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.placeholder = 'What does it say?';
+    input.setAttribute('aria-label', `Answer for card ${idx + 1}`);
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.type = 'submit';
+    btn.textContent = 'Check';
+    const show = document.createElement('button');
+    show.className = 'btn ghost-btn';
+    show.type = 'button';
+    show.textContent = 'Show';
+    const res = document.createElement('p');
+    res.className = 'study-res';
+    res.setAttribute('role', 'status');
+    const reveal = (ok) => {
+      res.className = `study-res ${ok ? 'good' : 'shown'}`;
+      res.textContent = `${ok ? 'Correct. ' : ''}${card.word} · ${card.rules.join(', ')}${card.saved ? ` · saves ${card.saved} cell${card.saved > 1 ? 's' : ''}` : ''}`;
+    };
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (checkAnswer(card, input.value)) reveal(true);
+      else { res.className = 'study-res bad'; res.textContent = input.value.trim() ? 'Not yet. Count the dots in each cell again.' : 'Type the word first.'; }
+    });
+    show.addEventListener('click', () => reveal(false));
+    form.append(input, btn, show);
+    const ans = document.createElement('p');
+    ans.className = 'study-print-answer';
+    ans.textContent = card.word;
+    art.append(cells, form, res, ans);
+    grid.appendChild(art);
+  });
+}
+
+$('kitG1').addEventListener('click', () => { state.kit.grade = 1; renderKitPacks(); renderKitOutputs(); syncHash(); });
+$('kitG2').addEventListener('click', () => { state.kit.grade = 2; renderKitPacks(); renderKitOutputs(); syncHash(); });
+$('kitAdd').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = cleanSignText($('kitNew').value);
+  if (!v) { kitFlash('type the sign text first'); $('kitNew').focus(); return; }
+  if (state.kit.items.length >= MAX_SIGNS) { kitFlash(`a kit holds up to ${MAX_SIGNS} signs`); return; }
+  state.kit.items.push({ text: v, qty: 1 });
+  state.kit.pack = null;
+  $('kitNew').value = '';
+  renderKitAll();
+  syncHash();
+  $('kitNew').focus();
+});
+for (const r of ROLES) {
+  $(`role-${r}`).addEventListener('input', (e) => {
+    const v = cleanRole(e.target.value);
+    if (v) state.kit.roles[r] = v; else delete state.kit.roles[r];
+    $('handoffPre').textContent = handoffLines(state.kit, kitBuilt, kitBed).join('\n');
+    syncHash();
+  });
+}
+$('kitStl').addEventListener('click', () => {
+  const m = batchMesh(kitBuilt.signs, kitBed);
+  download('braillecraft-kit-batch.stl', new Blob([toSTL(m, 'braillecraft-kit')], { type: 'model/stl' }));
+  kitFlash(`saved ${kitBed.placements.length} plates in one STL`);
+});
+$('kitSvg').addEventListener('click', () => {
+  download('braillecraft-kit-sheet.svg', new Blob([kitSheetSVG(kitBuilt.signs)], { type: 'image/svg+xml' }));
+  kitFlash('saved the kit sheet');
+});
+$('kitJson').addEventListener('click', () => {
+  download('braillecraft-kit.json', new Blob([JSON.stringify(kitJSON(state.kit, kitBuilt, kitBed), null, 2)], { type: 'application/json' }));
+  kitFlash('saved the kit as JSON');
+});
+$('kitCopy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('handoffPre').textContent);
+    kitFlash('handoff sheet copied');
+  } catch {
+    kitFlash('copy blocked by the browser');
+  }
+});
+function printMode(cls) {
+  document.body.classList.add(cls);
+  window.print();
+}
+window.addEventListener('afterprint', () => document.body.classList.remove('print-handoff', 'print-cards'));
+$('kitPrint').addEventListener('click', () => printMode('print-handoff'));
+$('printCards').addEventListener('click', () => printMode('print-cards'));
+$('kitShare').addEventListener('click', async () => {
+  const url = location.href.split('#')[0] + encodeHash({ ...state, tab: 'kit', kit: packKit(state.kit) });
+  try {
+    await navigator.clipboard.writeText(url);
+    kitFlash('kit link copied');
+  } catch {
+    history.replaceState(null, '', url);
+    kitFlash('link updated, copy the address bar');
+  }
+});
+
+// -------------------------------- how it works -------------------------------
+
+function renderHow() {
+  const cells = $('howCells');
+  cells.textContent = '';
+  const numbered = document.createElement('figure');
+  numbered.className = 'how-cell';
+  const big = cellDots(0x3f, 'dcell dcell-lg numbered');
+  big.querySelectorAll('i').forEach((i, k) => { i.textContent = String([1, 4, 2, 5, 3, 6][k]); });
+  const cap0 = document.createElement('figcaption');
+  cap0.textContent = 'Dot numbers';
+  numbered.append(big, cap0);
+  cells.appendChild(numbered);
+  for (const ch of ['a', 'b', 'c', 'l']) {
+    const fig = document.createElement('figure');
+    fig.className = 'how-cell';
+    fig.append(cellDots(encode(ch, { grade: 1 }).cells[0], 'dcell dcell-lg'));
+    const cap = document.createElement('figcaption');
+    cap.textContent = ch;
+    fig.appendChild(cap);
+    cells.appendChild(fig);
+  }
+
+  const tb = $('howContractions').querySelector('tbody');
+  tb.textContent = '';
+  for (const w of ['and', 'the', 'for', 'with', 'library', 'restroom', 'station']) {
+    const g1 = encode(w, { grade: 1 });
+    const g2 = encode(w, { grade: 2 });
+    const rules = [...new Set(g2.tokens.map(t => RULE_LABELS[t.rule] || t.rule))].join(', ');
+    const tr = document.createElement('tr');
+    for (const v of [w, `${g1.unicode} (${g1.cells.length})`, `${g2.unicode} (${g2.cells.length})`, rules]) {
+      const td = document.createElement('td');
+      td.textContent = v;
+      tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  }
+
+  const ind = $('howIndicators');
+  ind.textContent = '';
+  for (const [mask, name, what] of [
+    [CAP, 'Capital, dot 6', 'the next letter is uppercase; two in a row capitalize the whole word'],
+    [NUM, 'Numeric, dots 3 4 5 6', 'the letters a to j that follow read as the digits 1 to 0'],
+    [G1, 'Grade 1, dots 5 6', 'the next cell is a plain letter, not a contraction']
+  ]) {
+    const dt = document.createElement('dt');
+    dt.append(cellDots(mask), document.createTextNode(name));
+    const dd = document.createElement('dd');
+    dd.textContent = what;
+    ind.append(dt, dd);
+  }
+
+  const sp = $('howSpecs');
+  sp.textContent = '';
+  for (const [k, v] of [
+    ['Dot base diameter', `${ADA.dotBaseMm} mm`], ['Dot height', `${ADA.dotHeightMm} mm`],
+    ['Dot to dot in a cell', `${ADA.intraCellPitchMm} mm`], ['Cell to cell', `${ADA.interCellPitchMm} mm`],
+    ['Line to line', `${ADA.linePitchMm} mm`], ['Plate thickness', `${ADA.plateThicknessMm} mm`],
+    ['Mounting holes', `${ADA.mountHoleDiameterMm} mm, ${ADA.mountHoleInsetMm} mm in from each edge`],
+    ['Standard', ADA.specName.replace(/ s(\d)/, ' §$1')]
+  ]) {
+    const dt = document.createElement('dt');
+    dt.textContent = k;
+    const dd = document.createElement('dd');
+    dd.textContent = v;
+    sp.append(dt, dd);
+  }
+}
+
+const howDialog = $('howDialog');
+$('howOpen').addEventListener('click', () => {
+  if (typeof howDialog.showModal === 'function') howDialog.showModal();
+  else howDialog.setAttribute('open', '');
+});
+$('howClose').addEventListener('click', () => howDialog.close());
+howDialog.addEventListener('click', (e) => { if (e.target === howDialog) howDialog.close(); });
+
 // --------------------------------- tests ------------------------------------
 
 $('runTests').addEventListener('click', () => {
   const { results, passed, total, allPass } = runSelfTests();
   const sum = $('testSummary');
-  sum.textContent = `${passed} of ${total} checks passed${allPass ? ' — all invariants hold' : ''}`;
+  sum.textContent = `${passed} of ${total} checks passed${allPass ? ', all invariants hold' : ''}`;
   sum.className = `test-summary ${allPass ? 'good' : 'bad'}`;
   const list = $('testResults');
   list.textContent = '';
@@ -576,19 +927,26 @@ let hashTimer = null;
 function syncHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
-    history.replaceState(null, '', encodeHash(state));
+    history.replaceState(null, '', encodeHash({ ...state, kit: packKit(state.kit) }));
   }, 180);
 }
 
 function bootstrap() {
   const h = decodeHash(location.hash);
-  if (h.text !== undefined) state.text = h.text;
+  if (h.text !== undefined) {
+    state.text = h.text;
+    state.preset = null; // a linked text only keeps a preset the link names
+  }
   if (h.grade) state.grade = h.grade;
   if (h.maxCols) state.maxCols = h.maxCols;
   if (h.preset) state.preset = h.preset;
   if (h.lesson) state.lesson = h.lesson;
   if (h.muted) state.muted = h.muted;
   if (h.theme) state.theme = h.theme;
+  if (h.kit) {
+    const k = normalizeKit(h.kit);
+    if (k.items.length) state.kit = k;
+  }
 
   if (!state.theme) {
     state.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -600,6 +958,8 @@ function bootstrap() {
   markGrade(); markPresets();
   startLesson();
   rerun();
+  renderKitAll();
+  renderHow();
   selectTab(h.tab || 'studio');
 }
 bootstrap();

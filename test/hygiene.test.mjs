@@ -1,4 +1,4 @@
-// hygiene.test.mjs — static guarantees: files exist, zero external fetches,
+// hygiene.test.mjs: static guarantees: files exist, zero external fetches,
 // no CDNs, no frameworks, CSP present, accessibility hooks in place.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

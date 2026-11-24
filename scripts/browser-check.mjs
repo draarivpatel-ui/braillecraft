@@ -1,4 +1,4 @@
-// browser-check.mjs — real headless Chromium audit via Playwright.
+// browser-check.mjs: real headless Chromium audit via Playwright.
 // Drives the page at 1440x900 and 390x844, clicks every tab / preset /
 // toggle / export / self-test, plays a trainer chord on the real keypad,
 // and asserts: 0 console errors, 0 page errors, 0 external requests,
@@ -145,6 +145,50 @@ async function auditViewport({ name, width, height, mobile = false }) {
   check(`${name}: trainer chord graded correct`, /correct|embossed/i.test(state2 || ''), (state2 || '').trim());
 
   // self-tests tab
+  // Community kit: load a pack, add a sign with real typing, set a role,
+  // answer a study card, download the batch STL, reload from the hash.
+  await page.locator('#tab-kit').click();
+  check(`${name}: kit tab opens`, await page.locator('#panel-kit').isVisible());
+  await page.getByRole('button', { name: 'Community center' }).click();
+  await page.locator('#kitNew').click();
+  await page.keyboard.type('Art room');
+  await page.keyboard.press('Enter');
+  const kitSigns = await page.locator('.kit-sign').count();
+  check(`${name}: kit adds a typed sign`, kitSigns === 5, `${kitSigns} signs`);
+  await page.locator('#role-check').click();
+  await page.keyboard.type('Sam');
+  const handoff = await page.locator('#handoffPre').textContent();
+  check(`${name}: handoff names the braille reader`, handoff.includes('Checked by a braille reader: Sam'));
+  const [kdl] = await Promise.all([page.waitForEvent('download'), page.locator('#kitStl').click()]);
+  check(`${name}: batch STL downloads`, kdl.suggestedFilename() === 'braillecraft-kit-batch.stl', kdl.suggestedFilename());
+  await kdl.delete().catch(() => {});
+  const card = page.locator('.study-card').first();
+  await card.getByRole('button', { name: 'Show' }).click();
+  const answer = (await card.locator('.study-res').innerText()).split(' ')[0];
+  await card.locator('input').fill(answer);
+  await card.getByRole('button', { name: 'Check' }).click();
+  check(`${name}: study card accepts the right answer`, (await card.locator('.study-res').innerText()).startsWith('Correct.'), answer);
+  await page.waitForTimeout(300);
+  const kitUrl = page.url();
+  await page.goto('about:blank');
+  await page.goto(kitUrl, { waitUntil: 'load' });
+  const restored = await page.locator('.kit-sign input[type="text"]').evaluateAll(els => els.map(e => e.value));
+  check(`${name}: kit survives a reload from the link`, restored.includes('Art room') && (await page.locator('#role-check').inputValue()) === 'Sam', restored.join(', '));
+  await page.locator('#howOpen').click();
+  await page.waitForSelector('#howDialog[open]');
+  const rows = await page.locator('#howContractions tbody tr').count();
+  check(`${name}: how it works dialog shows live contraction examples`, rows >= 5, `${rows} rows`);
+  await page.locator('#howClose').click();
+  await page.waitForSelector('#howDialog:not([open])', { state: 'attached' });
+  const dashRe = new RegExp('[' + String.fromCharCode(0x2013, 0x2014) + ']');
+  let dashTab = '';
+  for (const t of ['studio', 'kit', 'trainer', 'tests']) {
+    await page.locator(`#tab-${t}`).click();
+    const txt = await page.evaluate(() => document.body.innerText + document.title + document.getElementById('howDialog').textContent);
+    if (dashRe.test(txt)) dashTab = t;
+  }
+  check(`${name}: no em or en dash in rendered text`, dashTab === '', dashTab);
+
   await page.locator('#tab-tests').click();
   await page.locator('#runTests').click();
   await page.waitForSelector('#testResults li', { timeout: 15000 });

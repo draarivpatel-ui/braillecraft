@@ -1,4 +1,4 @@
-// perkins.mjs — 6-key Perkins Brailler chord trainer core.
+// perkins.mjs: 6-key Perkins Brailler chord trainer core.
 //
 // Key map mirrors a real brailler: F D S strike dots 1-2-3 (left column),
 // J K L strike dots 4-5-6 (right column), Space advances a blank cell.
@@ -26,7 +26,7 @@ export function maskToChordKeys(mask) {
 
 import { LETTER_MASK, STRONG_WORDSIGNS, STRONG_GROUPSIGNS, ALPHABETIC_WORDSIGNS, NUM, CAP, maskToUnicode, dotsOf } from './ueb.mjs';
 
-// item: {prompt, hint, cells:[masks]} — one braille cell per chord, space = pause
+// item: {prompt, hint, cells:[masks]}: one braille cell per chord, space = pause
 function cellsFromText(text) {
   const cells = [];
   for (const ch of text) {

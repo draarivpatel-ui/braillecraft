@@ -1,4 +1,4 @@
-// perkins.test.mjs — chord mapping, session grading, lesson integrity.
+// perkins.test.mjs: chord mapping, session grading, lesson integrity.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {

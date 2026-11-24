@@ -1,4 +1,4 @@
-// geometry.test.mjs — ADA metrology, layout, mesh invariants, STL and SVG.
+// geometry.test.mjs: ADA metrology, layout, mesh invariants, STL and SVG.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { encode } from '../src/ueb.mjs';

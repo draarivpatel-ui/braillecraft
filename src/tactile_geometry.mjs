@@ -1,4 +1,4 @@
-// tactile_geometry.mjs — ADA / ANSI A117.1 tactile Braille metrology,
+// tactile_geometry.mjs: ADA / ANSI A117.1 tactile Braille metrology,
 // a watertight-manifold STL mesh generator, and a 1:1 mm SVG blueprint
 // exporter for swell-paper embossers and laser-cut drill templates.
 //
@@ -278,7 +278,7 @@ export function toSTL(mesh, name = 'braillecraft-plaque') {
 }
 
 // ---------------------------------------------------------------------------
-// SVG blueprint (1:1 millimetre) — swell-paper / laser drill template
+// SVG blueprint (1:1 millimetre): swell-paper / laser drill template
 // ---------------------------------------------------------------------------
 
 const f3 = n => Math.round(n * 1000) / 1000;

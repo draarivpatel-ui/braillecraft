@@ -1,4 +1,4 @@
-// ueb.mjs — Unified English Braille (UEB) transcription engine.
+// ueb.mjs: Unified English Braille (UEB) transcription engine.
 //
 // Implements Grade 1 (uncontracted) and a documented core subset of Grade 2
 // (contracted) UEB per ICEB "The Rules of Unified English Braille" (3rd ed.
@@ -10,10 +10,10 @@
 // Unicode Braille Patterns occupy U+2800..U+283F; mask m -> U+2800 + m.
 
 export const BLANK = 0x00;
-export const CAP = 0x20; // dot 6 — capital letter indicator
-export const CAPS_TERM = 0x04; // dot 3 — after dot 6: capital passage terminator
-export const NUM = 0x3c; // dots 3-4-5-6 — numeric indicator
-export const G1 = 0x30; // dots 5-6 — grade 1 symbol indicator
+export const CAP = 0x20; // dot 6: capital letter indicator
+export const CAPS_TERM = 0x04; // dot 3: after dot 6: capital passage terminator
+export const NUM = 0x3c; // dots 3-4-5-6: numeric indicator
+export const G1 = 0x30; // dots 5-6: grade 1 symbol indicator
 export const BRAILLE_BASE = 0x2800;
 
 // ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ export const LETTER_TO_DIGIT = Object.fromEntries(
 // Multi-cell signs are emitted atomically so the decoder can longest-match.
 // ---------------------------------------------------------------------------
 
-const OPEN_Q = 0x26; // dots 2-3-6 — also the question mark (ambiguous by design)
+const OPEN_Q = 0x26; // dots 2-3-6: also the question mark (ambiguous by design)
 const CLOSE_Q = 0x34; // dots 3-5-6
 
 export const PUNCT = {
@@ -101,8 +101,8 @@ export const PUNCT = {
   '/': [0x38, 0x0c],
   '\\': [0x38, 0x21],
   '-': [0x24],
-  '\u2013': [0x20, 0x24], // – dash
-  '\u2014': [0x10, 0x20, 0x24], // — long dash
+  '\u2013': [0x20, 0x24], // en dash
+  '\u2014': [0x10, 0x20, 0x24], // em dash
   '\u2026': [0x32, 0x32, 0x32], // … ellipsis
   '_': [0x28, 0x24],
   '@': [0x08, 0x01],

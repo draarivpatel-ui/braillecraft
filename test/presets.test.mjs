@@ -1,4 +1,4 @@
-// presets.test.mjs — template integrity and URL-hash state codec.
+// presets.test.mjs: template integrity and URL-hash state codec.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESETS, presetById, encodeHash, decodeHash } from '../src/presets.mjs';

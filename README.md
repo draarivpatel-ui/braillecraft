@@ -1,6 +1,6 @@
 # BrailleCraft
 
-**Offline UEB braille translator, ADA tactile plaque generator (STL + SVG), and 6-key Perkins chord trainer — zero dependencies, 100% client-side.**
+**Offline UEB braille translator, ADA tactile plaque generator (STL + SVG), and 6-key Perkins chord trainer: zero dependencies, 100% client-side.**
 
 Live demo: `https://aariv.me/braillecraft/`
 
@@ -20,7 +20,7 @@ BrailleCraft is a tactile engineering studio that runs entirely in the browser w
 ### Tactile geometry (`src/tactile_geometry.mjs`)
 - ADA / ANSI A117.1 and Marburg Medium metrology: dot base `1.5 mm`, dot height `0.6 mm`, intra-cell pitch `2.34 mm`, inter-cell pitch `6.2 mm`, line pitch `10.0 mm`
 - Word-wrap plaque layout with margins and corner mounting holes
-- Watertight binary STL export — shared vertex pool, every edge incident to exactly two triangles, unit outward normals, positive signed volume
+- Watertight binary STL export: shared vertex pool, every edge incident to exactly two triangles, unit outward normals, positive signed volume
 - Millimetre-true SVG blueprint with dimension callouts, dashed cell guides, crosshaired mounting holes, and a high-contrast caption layer
 - Presentation-attribute-only SVG so the same file renders inside strict-CSP pages and standalone
 
@@ -33,6 +33,17 @@ BrailleCraft is a tactile engineering studio that runs entirely in the browser w
 - URL-hash shareable state (preset, text, grade, lesson, theme, mute)
 - Light/dark theme, keyboard-first ARIA tab structure, responsive from `390 px` to desktop with zero horizontal overflow
 
+### Community Tactile Kit (`src/kit.mjs`)
+- Turns a whole hallway of signs into one volunteer print job: three starter packs (classroom hallway, science wing, community center) or your own signs, each with a copy count
+- One batch `.stl` that shelf-packs every plate copy onto a 220 x 220 mm bed (disjoint watertight shells; volume equals the sum of the plates), plus one combined 1:1 `.svg` sheet and a `.json` export
+- PLA estimate from the real mesh volume at 1.24 g/cm3
+- Print-shop handoff sheet (copy or print) with the ADA dot spec, every sign's braille, plate size and dot count, a pre-mounting checklist, and named roles: who designs, prints, checks by touch (a braille reader) and mounts
+- Study cards built from the kit's own words, drawn as tactile domes, so sighted classmates learn the braille they are putting on the wall; check an answer or reveal it with the UEB rule used, and print the deck
+- The whole kit, including roles, rides in the share link through a strict decoder
+
+### How it works dialog
+- One button explains the braille cell, Grade 1 versus Grade 2 with examples computed live by the encoder, the indicators, the tactile sign specs, Perkins chords, and how the app was built
+
 ### Perkins chord trainer (`src/perkins.mjs`)
 - Real Perkins key map: `F D S` = dots 1-2-3, `J K L` = dots 4-5-6, `Space` = blank cell; chords commit on full release like a real brailler
 - Clickable/touchable key caps for mobile
@@ -40,17 +51,17 @@ BrailleCraft is a tactile engineering studio that runs entirely in the browser w
 - Live chord grading, accuracy and streak tracking, WebAudio click/chime feedback with mute toggle
 
 ### Self-tests (`src/selftest.mjs`)
-- In-page `Run Self-Tests` button re-verifies UEB vectors, ADA tolerances, and STL manifold invariants live for judges
+- In-page `Run Self-Tests` button re-verifies UEB vectors, ADA tolerances, STL manifold invariants and the kit batch live (35 checks)
 
 ## Testing
 
 ```bash
-npm test              # 500 node --test cases: UEB, geometry, STL, SVG, presets, perkins, hygiene
-npm run browser:check # real Chrome audit at 1440x900 and 390x844 (40 checks, 0 console/page errors,
+npm test              # 595 node --test cases: UEB, geometry, STL, SVG, presets, kit, perkins, hygiene
+npm run browser:check # real Chrome audit at 1440x900 and 390x844 (56 checks, 0 console/page errors,
                       # 0 external requests, 0 horizontal overflow) + screenshots
 ```
 
-`scripts/serve.mjs` is a tiny local static server for the browser audit; `scripts/browser-check.mjs` drives installed Chrome via Playwright (loaded from the npx cache — no repo dependency).
+`scripts/serve.mjs` is a tiny local static server for the browser audit; `scripts/browser-check.mjs` drives installed Chrome via Playwright (loaded from the npx cache: no repo dependency).
 
 ## File map
 
@@ -62,8 +73,9 @@ src/ueb.mjs                UEB Grade 1 + Grade 2 encoder/decoder
 src/tactile_geometry.mjs   ADA metrology, layout, watertight STL, mm-true SVG
 src/perkins.mjs            Perkins session state machine, lessons, audio clicker
 src/presets.mjs            signage presets + URL hash state codec
+src/kit.mjs                community kit: batch STL, sheet SVG, handoff sheet, study cards
 src/selftest.mjs           in-page invariant checks
-test/                      500 node:test cases
+test/                      595 node:test cases
 scripts/serve.mjs          local static server
 scripts/browser-check.mjs  headless Chrome audit + screenshots
 screenshots/               desktop.png (1440x900), mobile.png (390x844)
@@ -71,8 +83,8 @@ screenshots/               desktop.png (1440x900), mobile.png (390x844)
 
 ## AI disclosure
 
-Built with AI coding assistance (SWE-2 Max via T3 Code). The UEB rules, ADA dimensions, test vectors, and every behavior claim were verified against the real test suite and a real headless-Chrome audit; nothing is asserted without a check that exercises it.
+Built by Aariv Patel with AI coding assistance (Devin SWE-2 and Claude via T3 Code). The UEB rules, ADA dimensions, test vectors, and every behavior claim were verified against the real test suite and a real headless-Chrome audit; nothing is asserted without a check that exercises it.
 
 ## License
 
-MIT — see `LICENSE`.
+MIT: see `LICENSE`.

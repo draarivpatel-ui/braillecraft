@@ -1,4 +1,4 @@
-// ueb.test.mjs — UEB engine verification: every letter, digit, indicator,
+// ueb.test.mjs: UEB engine verification: every letter, digit, indicator,
 // punctuation sign, wordsign, groupsign, savings and Grade-1 round trip.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -114,7 +114,7 @@ const PUNCT_VECTORS = {
   '{': [0x38, 0x23], '}': [0x38, 0x1c], '@': [0x08, 0x01], '&': [0x08, 0x2f],
   '#': [0x38, 0x39], '$': [0x08, 0x0e], '%': [0x28, 0x34], '*': [0x10, 0x14],
   '+': [0x10, 0x16], '=': [0x10, 0x36], '_': [0x28, 0x24],
-  '–': [0x20, 0x24], '…': [0x32, 0x32, 0x32], '°': [0x18, 0x1a]
+  '\u2013': [0x20, 0x24], '…': [0x32, 0x32, 0x32], '°': [0x18, 0x1a]
 };
 for (const [ch, expected] of Object.entries(PUNCT_VECTORS)) {
   test(`punct ${JSON.stringify(ch)} encodes to [${expected.map(m => '0x' + m.toString(16)).join(', ')}]`, () => {

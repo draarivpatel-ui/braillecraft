@@ -1,7 +1,7 @@
 // geometry.test.mjs: ADA metrology, layout, mesh invariants, STL and SVG.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encode } from '../src/ueb.mjs';
+import { encode, decodeG1 } from '../src/ueb.mjs';
 import {
   ADA, layoutPlaque, buildMesh, toSTL, toSVG,
   verifyWatertight, meshVolume, triNormal
@@ -45,10 +45,27 @@ test('wrapping honors maxCols', () => {
   for (const r of wrapLayout.rows) assert.ok(r.length <= 8);
 });
 test('wrapping does not split words when they fit', () => {
-  // "QUICK" is 5 cells; with maxCols 8 it must sit whole on its own line segment
-  const masks = wrapLayout.rows.flat().map(c => c.mask).filter(m => m !== 0);
-  const uni = masks.map(m => String.fromCodePoint(0x2800 + m)).join('');
-  assert.ok(uni.length > 0);
+  const lines = wrapLayout.rows.map(row => decodeG1(row.map(cell => cell.mask)).trimEnd());
+  assert.deepEqual(lines, ['THE', 'QUICK', 'BROWN', 'FOX', 'JUMPS']);
+});
+test('hello world wraps as whole words at eight columns', () => {
+  const lay = layoutPlaque(encode('hello world', { grade: 1 }).tokens, { maxCols: 8 });
+  assert.deepEqual(lay.rows.map(row => decodeG1(row.map(cell => cell.mask)).trimEnd()), ['hello', 'world']);
+});
+test('plain cell streams wrap at blank cells as whole words', () => {
+  const lay = layoutPlaque(encode('hello world', { grade: 1 }).cells, { maxCols: 8 });
+  assert.deepEqual(lay.rows.map(row => decodeG1(row.map(cell => cell.mask)).trimEnd()), ['hello', 'world']);
+});
+test('a word wider than the plate splits only at the column limit', () => {
+  const lay = layoutPlaque(encode('abcdefghijk', { grade: 1 }).tokens, { maxCols: 8 });
+  assert.deepEqual(lay.rows.map(row => decodeG1(row.map(cell => cell.mask)).trimEnd()), ['abcdefgh', 'ijk']);
+  assert.ok(lay.rows.every(row => row.length <= 8));
+});
+test('word wrapping preserves per-cell source and rule metadata', () => {
+  const tokens = encode('hello world', { grade: 1 }).tokens;
+  const lay = layoutPlaque(tokens, { maxCols: 8 });
+  assert.deepEqual(lay.rows[1].map(cell => ({ src: cell.src, rule: cell.rule })),
+    tokens.filter(token => token.rule !== 'space').slice(5).map(token => ({ src: token.src, rule: token.rule })));
 });
 test('leading space cells are not left after a wrap', () => {
   for (const r of wrapLayout.rows) assert.notEqual(r[0].mask, 0);

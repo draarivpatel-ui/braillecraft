@@ -28,31 +28,40 @@ export const ADA = {
 // Wraps at space cells up to maxCols cells per line (words are never split
 // unless a single word is wider than the plate).
 export function layoutPlaque(tokens, { maxCols = 32, spec = ADA } = {}) {
-  // Word wrap: a token's cells stay together when possible; each placed cell
-  // keeps its source text and UEB rule for the interactive inspector.
+  // Collect complete words across encoder tokens, keeping each cell's source
+  // text and UEB rule for the interactive inspector.
   const groups = [];
+  let word = [];
   for (const t of tokens) {
     const masks = typeof t === 'number' ? [t] : t.cells;
-    groups.push({
-      masks,
-      src: typeof t === 'number' ? '' : t.src,
-      rule: typeof t === 'number' ? 'letter' : t.rule,
-      isSpace: typeof t !== 'number' && t.rule === 'space'
-    });
+    for (const mask of masks) {
+      const cell = { mask, src: typeof t === 'number' ? '' : t.src,
+        rule: typeof t === 'number' ? (mask === 0 ? 'space' : 'letter') : t.rule };
+      if (mask === 0) {
+        if (word.length) groups.push(word);
+        word = [];
+        groups.push([cell]);
+      } else word.push(cell);
+    }
   }
+  if (word.length) groups.push(word);
   const rows = [];
   let row = [];
-  let rowLen = 0;
-  const flush = () => { if (row.length) rows.push(row); row = []; rowLen = 0; };
-  for (const g of groups) {
-    if (g.isSpace && row.length === 0) continue; // never lead a row with a blank cell
-    if (rowLen + g.masks.length > maxCols && row.length) {
-      // do not leave a leading space on the next row
-      if (g.isSpace) { flush(); continue; }
-      flush();
+  const flush = () => {
+    while (row.length && row.at(-1).mask === 0) row.pop();
+    if (row.length) rows.push(row);
+    row = [];
+  };
+  for (const group of groups) {
+    if (group[0].mask === 0) {
+      if (row.length && row.length < maxCols) row.push(group[0]);
+      continue;
     }
-    for (const m of g.masks) row.push({ mask: m, src: g.src, rule: g.rule });
-    rowLen += g.masks.length;
+    if (row.length + group.length > maxCols) flush();
+    for (const cell of group) {
+      if (row.length === maxCols) flush();
+      row.push(cell);
+    }
   }
   flush();
 

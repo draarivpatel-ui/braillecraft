@@ -192,6 +192,8 @@ function contractWord(word, tokens, opts = {}) {
   }
 }
 
+const ALPHABETIC_IDENTIFIER_LETTERS = new Set(Object.values(ALPHABETIC_WORDSIGNS));
+
 // Encode text to UEB cells. Returns {cells, tokens, unicode, stats}.
 export function encodeUEB(text, { grade = 2 } = {}) {
   const src = String(text ?? '').normalize('NFC');
@@ -243,6 +245,12 @@ export function encodeUEB(text, { grade = 2 } = {}) {
       // caps-word applies to letters only: digits in the string ("3D", "A1")
       // must take the mixed path so they emit numeric-mode cells
       const allCaps = letters.length >= 2 && /^[A-Z]+$/.test(letters);
+
+      // UEB sections 5.2 and 10.1: a literal letter that would otherwise be
+      // an alphabetic wordsign needs a grade 1 symbol indicator, before caps.
+      if (grade >= 2 && letters.length === 1 && ALPHABETIC_IDENTIFIER_LETTERS.has(letters.toLowerCase())) {
+        push([G1], word, 'grade1-indicator');
+      }
 
       if (grade >= 2 && /^[a-z]+$/.test(word) && ALPHABETIC_WORDSIGNS[word]) {
         push([LETTER_MASK[ALPHABETIC_WORDSIGNS[word]]], word, 'alphabetic-wordsign');

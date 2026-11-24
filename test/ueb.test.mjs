@@ -106,6 +106,23 @@ test('cap indicator then alphabetic wordsign for "But"', () => {
   assert.deepEqual(cells('But'), [CAP, LETTER_MASK.b]);
 });
 
+for (const [word, letter] of Object.entries(ALPHABETIC_WORDSIGNS)) {
+  test('Grade 2 standalone identifier ' + letter + ' is distinct from the wordsign ' + word, () => {
+    assert.deepEqual(cells(letter), [G1, LETTER_MASK[letter]]);
+    assert.deepEqual(cells(letter.toUpperCase()), [G1, CAP, LETTER_MASK[letter]]);
+    assert.deepEqual(cells("'" + letter.toUpperCase() + "'").slice(1, -1), [G1, CAP, LETTER_MASK[letter]]);
+    assert.notDeepEqual(cells(letter), cells(word));
+    const title = word[0].toUpperCase() + word.slice(1);
+    assert.notDeepEqual(cells(letter.toUpperCase()), cells(title));
+    assert.deepEqual(cells('Room ' + letter.toUpperCase() + '.').slice(-4, -1), [G1, CAP, LETTER_MASK[letter]]);
+    assert.deepEqual(cells(letter, 1), [LETTER_MASK[letter]]);
+  });
+}
+
+test('Exit Stairwell B has an unambiguous Grade 2 final identifier', () => {
+  assert.deepEqual(cells('Exit Stairwell B').slice(-3), [G1, CAP, LETTER_MASK.b]);
+});
+
 // ---- punctuation --------------------------------------------------------------
 const PUNCT_VECTORS = {
   ',': [0x02], ';': [0x06], ':': [0x12], '.': [0x32], '!': [0x16], '?': [0x26],

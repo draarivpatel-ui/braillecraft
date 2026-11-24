@@ -404,7 +404,11 @@ function flash(msg) { $('copied').textContent = msg; setTimeout(() => { if ($('c
 
 // ------------------------------- inputs ------------------------------------
 
-$('srcText').addEventListener('input', rerun);
+$('srcText').addEventListener('input', () => {
+  state.preset = null;
+  markPresets();
+  rerun();
+});
 $('grade1').addEventListener('click', () => { state.grade = 1; state.preset = null; markGrade(); rerun(); });
 $('grade2').addEventListener('click', () => { state.grade = 2; state.preset = null; markGrade(); rerun(); });
 function markGrade() {
@@ -436,7 +440,6 @@ function markPresets() {
   const p = presetById(state.preset);
   $('presetNote').textContent = p ? p.note : '';
 }
-$('srcText').addEventListener('input', () => { state.preset = null; markPresets(); });
 
 // ------------------------------- trainer ------------------------------------
 

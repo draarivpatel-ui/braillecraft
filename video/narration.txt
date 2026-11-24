@@ -1,0 +1,11 @@
+BrailleCraft turns one browser tab into an A D A compliant braille signage studio. Type, and it gives back real U E B dots, a millimetre true plaque and print ready files. One static page, zero dependencies, no network.
+
+The engine is a real Unified English Braille translator, Grade 1 uncontracted and Grade 2 contracted. Flip to Grade 1 and every word spells out letter by letter. Back to Grade 2 and strong signs merge whole sounds into single cells; the saved counter reports exactly what the contractions bought.
+
+Five presets model real school signage, from a library quiet zone to an emergency stairwell. Each rewires the text, the grade and the plate in one click. Mounting holes and margins are laid out with the cells, not sketched after. Every dimension follows A D A and Marburg Medium metrology, and the blueprint draws it at true millimetre scale with callouts.
+
+The relief view shades every dome in isometric 3D. Drag the tilt and the plate turns under a fixed light. Hover a cell and the inspector names its dots, its rule and its exact origin in millimetres. The same layout exports a watertight S T L for the slicer and an S V G for swell paper or laser. Both files come straight off the layout the blueprint drew.
+
+The chord trainer is a real Perkins. F, D and S strike dots one, two and three; J, K and L strike four, five and six. A cell commits only when every key comes up. Lesson three asks for the word and. Five keys down together, release, and it grades the chord correct. The next word, the, takes four keys, and the streak climbs to two.
+
+Nothing here is asserted without a check. Thirty three invariants rerun live in the page, covering U E B vectors, A D A pitch bands, watertight geometry, chord maps and hash recovery. Four hundred seventy one tests guard the modules. BrailleCraft. One page, one plaque, zero install.

@@ -1,0 +1,40 @@
+[Script Info]
+Title: braillecraft demo captions
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cap,Helvetica,42,&H00FFFFFF,&H000019FF,&H88141414,&H00000000,-1,0,0,0,100,100,0,0,3,14,0,2,120,120,46,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.52,0:00:06.41,Cap,,0,0,0,,BrailleCraft turns one browser tab into an A D A compliant braille signage studio.
+Dialogue: 0,0:00:06.58,0:00:12.63,Cap,,0,0,0,,Type, and it gives back real U E B dots, a millimetre true plaque and print ready files.
+Dialogue: 0,0:00:12.80,0:00:16.21,Cap,,0,0,0,,One static page, zero dependencies, no network.
+Dialogue: 0,0:00:16.83,0:00:24.52,Cap,,0,0,0,,The engine is a real Unified English Braille translator, Grade 1 uncontracted and Grade 2 contracted.
+Dialogue: 0,0:00:24.69,0:00:29.06,Cap,,0,0,0,,Flip to Grade 1 and every word spells out letter by letter.
+Dialogue: 0,0:00:29.23,0:00:39.04,Cap,,0,0,0,,Back to Grade 2 and strong signs merge whole sounds into single cells; the saved counter reports exactly what the contractions bought.
+Dialogue: 0,0:00:39.66,0:00:46.27,Cap,,0,0,0,,Five presets model real school signage, from a library quiet zone to an emergency stairwell.
+Dialogue: 0,0:00:46.44,0:00:50.65,Cap,,0,0,0,,Each rewires the text, the grade and the plate in one click.
+Dialogue: 0,0:00:50.82,0:00:56.19,Cap,,0,0,0,,Mounting holes and margins are laid out with the cells, not sketched after.
+Dialogue: 0,0:00:56.36,0:01:05.37,Cap,,0,0,0,,Every dimension follows A D A and Marburg Medium metrology, and the blueprint draws it at true millimetre scale with callouts.
+Dialogue: 0,0:01:05.99,0:01:09.80,Cap,,0,0,0,,The relief view shades every dome in isometric 3D.
+Dialogue: 0,0:01:09.97,0:01:13.78,Cap,,0,0,0,,Drag the tilt and the plate turns under a fixed light.
+Dialogue: 0,0:01:13.95,0:01:20.44,Cap,,0,0,0,,Hover a cell and the inspector names its dots, its rule and its exact origin in millimetres.
+Dialogue: 0,0:01:20.61,0:01:27.14,Cap,,0,0,0,,The same layout exports a watertight S T L for the slicer and an S V G for swell paper or laser.
+Dialogue: 0,0:01:27.31,0:01:31.60,Cap,,0,0,0,,Both files come straight off the layout the blueprint drew.
+Dialogue: 0,0:01:32.22,0:01:34.83,Cap,,0,0,0,,The chord trainer is a real Perkins.
+Dialogue: 0,0:01:35.00,0:01:40.21,Cap,,0,0,0,,F, D and S strike dots one, two and three; J, K and L strike four, five and six.
+Dialogue: 0,0:01:40.38,0:01:43.51,Cap,,0,0,0,,A cell commits only when every key comes up.
+Dialogue: 0,0:01:43.68,0:01:46.21,Cap,,0,0,0,,Lesson three asks for the word and.
+Dialogue: 0,0:01:46.38,0:01:51.11,Cap,,0,0,0,,Five keys down together, release, and it grades the chord correct.
+Dialogue: 0,0:01:51.28,0:01:55.81,Cap,,0,0,0,,The next word, the, takes four keys, and the streak climbs to two.
+Dialogue: 0,0:01:56.43,0:01:59.44,Cap,,0,0,0,,Nothing here is asserted without a check.
+Dialogue: 0,0:01:59.61,0:02:09.46,Cap,,0,0,0,,Thirty three invariants rerun live in the page, covering U E B vectors, A D A pitch bands, watertight geometry, chord maps and hash recovery.
+Dialogue: 0,0:02:09.63,0:02:13.24,Cap,,0,0,0,,Four hundred seventy one tests guard the modules.
+Dialogue: 0,0:02:13.41,0:02:15.26,Cap,,0,0,0,,BrailleCraft.
+Dialogue: 0,0:02:15.43,0:02:17.96,Cap,,0,0,0,,One page, one plaque, zero install.

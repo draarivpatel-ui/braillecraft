@@ -449,6 +449,7 @@ function renderLessonList() {
     const b = document.createElement('button');
     b.className = 'chip';
     b.textContent = l.title.replace(/^Lesson \d+: /, '');
+    b.title = l.blurb;
     b.setAttribute('aria-pressed', String(l.id === state.lesson));
     b.addEventListener('click', () => { state.lesson = l.id; startLesson(); syncHash(); });
     $('lessonList').appendChild(b);

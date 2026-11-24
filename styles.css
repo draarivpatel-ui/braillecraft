@@ -15,7 +15,7 @@
   --accent-ink: #8f4f14;
   --accent-soft: #f0dfc8;
   --on-accent: #ffffff;
-  --accent-solid: #8f4f14;
+  --accent-solid: #7a4311;
   --good: #2c7a4b;
   --bad: #b3372c;
   --dotgrid: rgba(27, 36, 48, 0.055);
@@ -285,7 +285,9 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   margin: 16px 0; padding: 18px; text-align: center;
   background: var(--paper);
 }
-.prompt-label { font: 650 .72rem var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.prompt-zone { display: flex; flex-direction: column; }
+.prompt-label { order: 9; margin-top: 8px; font: 600 .8rem var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.prompt-zone .progress { order: 8; }
 .prompt-text { font: 800 2.6rem/1.15 var(--mono); margin: 8px 0 4px; letter-spacing: .04em; }
 .prompt-target { display: flex; align-items: baseline; justify-content: center; gap: 14px; flex-wrap: wrap; }
 .prompt-braille { font-family: var(--mono); font-size: 1.9rem; color: var(--accent-ink); }
@@ -488,8 +490,10 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 }
 
 @media print {
-  .topbar, .foot, .how, main > section { display: none !important; }
-  body { background: #fff; }
+  .how { display: none !important; }
+  body.print-handoff .topbar, body.print-handoff .foot, body.print-handoff main > section,
+  body.print-cards .topbar, body.print-cards .foot, body.print-cards main > section { display: none !important; }
+  body.print-handoff, body.print-cards { background: #fff; }
   body.print-handoff #panel-kit, body.print-cards #panel-kit { display: block !important; }
   body.print-handoff #panel-kit > :not(.kit-grid), body.print-handoff .kit-card { display: none !important; }
   body.print-handoff .kit-grid { display: block; }

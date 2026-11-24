@@ -84,6 +84,7 @@ for (const pack of KIT_PACKS) {
       for (const s of built.signs) { assert.ok(text.includes(`${s.n}. ${s.text}`)); assert.ok(text.includes(s.unicode)); }
       assert.ok(text.includes(`dot base ${ADA.dotBaseMm} mm`));
       assert.ok(text.includes('Checked by a braille reader'));
+      assert.ok(text.includes('(ADA 703.3.2)') && text.includes('(ADA 703.4.1)'));
       assert.ok(!DASHES.test(text));
     });
     test(`${tag}: study cards come from the kit's words`, () => {

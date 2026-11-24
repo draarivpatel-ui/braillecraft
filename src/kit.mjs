@@ -225,7 +225,8 @@ export function handoffLines(kit, built, bed) {
   L.push('[ ] Print at 100% scale and check one cell with calipers against the dot pitch above.');
   L.push('[ ] Dots are smooth rounded domes with no strings or sharp tips.');
   L.push('[ ] A braille reader has checked every sign by touch.');
-  L.push('[ ] Braille sits below the raised print text; tactile text baselines between 48 and 60 in above the floor (ADA 703.4.1).');
+  L.push('[ ] Braille sits below the raised print text (ADA 703.3.2).');
+  L.push('[ ] Lowest tactile baseline at least 48 in and highest at most 60 in above the floor (ADA 703.4.1).');
   L.push('');
   for (const r of ROLES) L.push(`${ROLE_LABEL[r]}: ${kit.roles?.[r] || '______________________'}`);
   return L;

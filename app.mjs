@@ -141,7 +141,7 @@ function renderBlueprint() {
   $('svgStage').innerHTML = svg;
   for (const g of $('svgStage').querySelectorAll('.cellg')) {
     g.setAttribute('tabindex', '0');
-    g.setAttribute('role', 'button');
+    g.setAttribute('role', 'img');
     const [r, c] = g.dataset.cell.split('.').map(Number);
     const cell = lastLayout.rows[r][c];
     const d = describeCell(cell.mask, cell);
@@ -339,12 +339,30 @@ function shade(hex, amt) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
-// 3D interaction: drag to tilt + hover to inspect nearest dome
-let dragging = false, dragX = 0;
-isoCanvas.addEventListener('pointerdown', e => { dragging = true; dragX = e.clientX; isoCanvas.setPointerCapture(e.pointerId); });
-isoCanvas.addEventListener('pointerup', () => { dragging = false; });
+// 3D interaction: drag to tilt + hover to inspect nearest dome. The drag
+// always ends on cancel, capture loss or window blur so an interrupted touch
+// cannot leave the canvas stuck in dragging mode.
+let dragging = false, dragX = 0, dragPointerId = null;
+function endIsoDrag(e) {
+  if (!dragging) return;
+  if (e?.pointerId != null && dragPointerId != null && e.pointerId !== dragPointerId) return;
+  dragging = false;
+  dragPointerId = null;
+}
+isoCanvas.addEventListener('pointerdown', e => {
+  if (dragging) return;
+  dragging = true;
+  dragX = e.clientX;
+  dragPointerId = e.pointerId;
+  try { isoCanvas.setPointerCapture(e.pointerId); } catch { /* synthetic pointers */ }
+});
+isoCanvas.addEventListener('pointerup', endIsoDrag);
+isoCanvas.addEventListener('pointercancel', endIsoDrag);
+isoCanvas.addEventListener('lostpointercapture', endIsoDrag);
+window.addEventListener('blur', () => endIsoDrag());
 isoCanvas.addEventListener('pointermove', e => {
   if (dragging) {
+    if (dragPointerId != null && e.pointerId !== dragPointerId) return;
     state.tilt = Math.max(-60, Math.min(60, state.tilt + (e.clientX - dragX) * 0.4));
     dragX = e.clientX;
     $('tilt').value = String(Math.round(state.tilt));

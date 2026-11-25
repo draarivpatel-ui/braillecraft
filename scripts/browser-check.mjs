@@ -1,9 +1,10 @@
 // browser-check.mjs: real headless Chromium audit via Playwright.
-// Drives the page at 1440x900 and 390x844, clicks every tab / preset /
+// Drives the page at 1440x900, 768x1024 and 390x844, clicks every tab / preset /
 // toggle / export / self-test, plays a trainer chord on the real keypad,
 // and asserts: 0 console errors, 0 page errors, 0 external requests,
 // 0 horizontal overflow. Captures screenshots/desktop.png and
-// screenshots/mobile.png for the Devpost gallery.
+// screenshots/mobile.png for the Devpost gallery (all widths when
+// BROWSER_SCREENSHOTS_DIR is set).
 import { createRequire } from 'node:module';
 import { readdirSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -11,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { startServer } from './serve.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const SHOTS = join(ROOT, 'screenshots');
+const SHOTS = process.env.BROWSER_SCREENSHOTS_DIR || join(ROOT, 'screenshots');
 
 // playwright is resolved from the npx cache or a local install; never vendored
 const require = createRequire(import.meta.url);
@@ -40,11 +41,19 @@ const { server, url } = await startServer();
 const base = new URL(url).origin;
 // Prefer the installed real Chrome (version-proof); fall back to the
 // Playwright-bundled headless shell if Chrome is absent.
+const launchOptions = {
+  channel: 'chrome',
+  headless: true,
+  args: ['--headless=new', '--mute-audio', '--disable-blink-features=AutomationControlled']
+};
+if (process.env.BROWSER_DOWNLOADS_DIR) launchOptions.downloadsPath = process.env.BROWSER_DOWNLOADS_DIR;
 let browser;
 try {
-  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  browser = await chromium.launch(launchOptions);
 } catch {
-  browser = await chromium.launch({ headless: true });
+  const fallback = { ...launchOptions };
+  delete fallback.channel;
+  browser = await chromium.launch(fallback);
 }
 
 async function auditViewport({ name, width, height, mobile = false }) {
@@ -65,6 +74,13 @@ async function auditViewport({ name, width, height, mobile = false }) {
   check(`${name}: page loads`, true);
 
   check(`${name}: title`, (await page.title()).includes('BrailleCraft'));
+
+  await page.locator('#tab-studio').focus();
+  await page.keyboard.press('ArrowRight');
+  const kitByKeyboard = await page.locator('#panel-kit').isVisible();
+  await page.keyboard.press('ArrowLeft');
+  const studioBack = await page.locator('#panel-studio').isVisible();
+  check(`${name}: arrow keys move the tablist`, kitByKeyboard && studioBack);
 
   // Studio basics
   await page.locator('#srcText').fill('ROOM 204');
@@ -113,11 +129,13 @@ async function auditViewport({ name, width, height, mobile = false }) {
     page.locator('#dlStl').click()
   ]);
   check(`${name}: STL downloads`, dl1.suggestedFilename().endsWith('.stl'), dl1.suggestedFilename());
+  await dl1.delete().catch(() => {});
   const [dl2] = await Promise.all([
     page.waitForEvent('download', { timeout: 8000 }),
     page.locator('#dlSvg').click()
   ]);
   check(`${name}: SVG downloads`, dl2.suggestedFilename().endsWith('.svg'), dl2.suggestedFilename());
+  await dl2.delete().catch(() => {});
 
   // share link sets a stateful hash
   await page.locator('#shareLink').click();
@@ -207,18 +225,19 @@ async function auditViewport({ name, width, height, mobile = false }) {
 
   await page.locator('#tab-studio').click();
   mkdirSync(SHOTS, { recursive: true });
-  await page.screenshot({ path: join(SHOTS, `${name === 'desktop' ? 'desktop' : 'mobile'}.png`), fullPage: false });
+  if (process.env.BROWSER_SCREENSHOTS_DIR || name !== 'tablet') await page.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: false });
   await ctx.close();
   return errs;
 }
 
 const errsD = await auditViewport({ name: 'desktop', width: 1440, height: 900 });
+const errsT = await auditViewport({ name: 'tablet', width: 768, height: 1024, mobile: true });
 const errsM = await auditViewport({ name: 'mobile', width: 390, height: 844, mobile: true });
 
 await browser.close();
 await new Promise(r => server.close(r));
 
-check('zero console errors across both viewports', consoleErrors === 0, `${consoleErrors}`);
+check('zero console errors across all three viewports', consoleErrors === 0, `${consoleErrors}`);
 check('zero uncaught page errors', pageErrors === 0, `${pageErrors}`);
 check('zero external network requests', externalRequests === 0, `${externalRequests}`);
 check('zero failed requests', failedRequests === 0, `${failedRequests}`);
@@ -226,8 +245,8 @@ check('zero failed requests', failedRequests === 0, `${failedRequests}`);
 const fails = results.filter(r => !r.ok);
 console.log(`\n${results.length - fails.length}/${results.length} checks passed; ` +
   `consoleErrors=${consoleErrors} pageErrors=${pageErrors} external=${externalRequests} failedReq=${failedRequests}`);
-if (errsD.length || errsM.length) {
+if (errsD.length || errsT.length || errsM.length) {
   console.log('console/page errors:');
-  for (const e of [...errsD, ...errsM].slice(0, 12)) console.log('  ' + e);
+  for (const e of [...errsD, ...errsT, ...errsM].slice(0, 12)) console.log('  ' + e);
 }
 process.exit(fails.length ? 1 : 0);

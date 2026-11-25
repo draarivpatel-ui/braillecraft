@@ -233,15 +233,24 @@ function drawIso() {
     return [dx * cos - dy * sin, dx * sin + dy * cos];
   };
   const proj = (x, y, z) => { const [rx, ry] = turn(x, y); return [rx, ry * FY - z * FZ]; };
-
-  // fit projected bounds, then size the canvas to the plate's shape
   const c = [[0, 0], [W, 0], [W, H], [0, H]];
-  const pts = c.flatMap(([x, y]) => [proj(x, y, 0), proj(x, y, t + dh)]);
-  const bx = [Math.min(...pts.map(p => p[0])), Math.max(...pts.map(p => p[0]))];
-  const by = [Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))];
+  const bounds = (pr) => {
+    const pts = c.flatMap(([x, y]) => [pr(x, y, 0), pr(x, y, t + dh)]);
+    return [[Math.min(...pts.map(p => p[0])), Math.max(...pts.map(p => p[0]))],
+      [Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))]];
+  };
   const PAD_X = 24, PAD_TOP = 22, PAD_BOT = 44;
+  // the canvas height follows the plate and the width only (measured at the
+  // default 18 degree turn), so dragging the tilt never moves the controls below
+  const REF = (18 * Math.PI) / 180, rc = Math.cos(REF), rs = Math.sin(REF);
+  const [rbx, rby] = bounds((x, y, z) => {
+    const dx = x - cx, dy = y - cy;
+    return [dx * rc - dy * rs, (dx * rs + dy * rc) * FY - z * FZ];
+  });
+  const fitH = Math.round(Math.min(380, Math.max(200,
+    (rby[1] - rby[0]) * ((w - 2 * PAD_X) / (rbx[1] - rbx[0] || 1)) + PAD_TOP + PAD_BOT)));
+  const [bx, by] = bounds(proj);
   const spanX = bx[1] - bx[0] || 1, spanY = by[1] - by[0] || 1;
-  const fitH = Math.round(Math.min(380, Math.max(200, spanY * ((w - 2 * PAD_X) / spanX) + PAD_TOP + PAD_BOT)));
   if (Math.abs(isoCanvas.clientHeight - fitH) > 1) isoCanvas.style.height = `${fitH}px`;
   const h = isoCanvas.clientHeight || fitH;
   const dpr = window.devicePixelRatio || 1;
@@ -259,13 +268,17 @@ function drawIso() {
   const line = cssVar('--line') || '#d8d2c4';
   const accent = cssVar('--accent') || '#b4651f';
   const accentInk = cssVar('--accent-ink') || '#8f4f14';
+  const edge = cssVar('--line-strong') || line;
+  // on the dark theme the slab is lifted well above the stage so it never sinks into it
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const face = shade(paper, dark ? 30 : 6);
 
   // soft contact shadow under the slab
   const base = c.map(([x, y]) => P(x, y, 0));
   ctx.save();
   ctx.translate(6, 8);
   ctx.beginPath(); ctx.moveTo(...base[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...base[i]); ctx.closePath();
-  ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fill();
+  ctx.fillStyle = dark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.10)'; ctx.fill();
   ctx.restore();
 
   // side walls that face the camera, shaded by how far they turn from the light
@@ -277,16 +290,16 @@ function drawIso() {
     const j = (i + 1) % 4;
     ctx.beginPath();
     ctx.moveTo(...top[i]); ctx.lineTo(...top[j]); ctx.lineTo(...base[j]); ctx.lineTo(...base[i]); ctx.closePath();
-    ctx.fillStyle = shade(paper, rx > 0 ? -34 : -18); ctx.fill();
-    ctx.strokeStyle = line; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.fillStyle = shade(face, rx > 0 ? -34 : -18); ctx.fill();
+    ctx.strokeStyle = edge; ctx.lineWidth = 0.8; ctx.stroke();
   });
 
   // top face
   ctx.beginPath();
   ctx.moveTo(...top[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...top[i]);
   ctx.closePath();
-  ctx.fillStyle = shade(paper, 6); ctx.fill();
-  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = face; ctx.fill();
+  ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke();
 
   // faint row/column guides on the plate face
   ctx.strokeStyle = line; ctx.globalAlpha = 0.55; ctx.lineWidth = 0.6;
@@ -305,7 +318,7 @@ function drawIso() {
     const [hx, hy] = P(hole.x, hole.y, t);
     const hr = (spec.mountHoleDiameterMm / 2) * scale;
     ctx.beginPath(); ctx.ellipse(hx, hy, hr, hr * FY, 0, 0, Math.PI * 2);
-    ctx.fillStyle = shade(ink, 0); ctx.fill();
+    ctx.fillStyle = dark ? '#05080c' : ink; ctx.fill();
     ctx.beginPath(); ctx.ellipse(hx, hy + hr * FY * 0.18, hr * 0.62, hr * 0.62 * FY, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#000'; ctx.fill();
   }

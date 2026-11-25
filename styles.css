@@ -209,7 +209,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   display: flex; flex-direction: column-reverse; justify-content: flex-end;
 }
 .metric dt { font: 600 .76rem var(--sans); color: var(--ink-2); margin-top: 2px; }
-.metric dd { margin: 3px 0 0; font: 700 1.05rem var(--mono); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric dd { margin: 3px 0 0; font: 700 1.05rem/1.2 var(--mono); color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
 /* -------------------------------- actions ------------------------------ */
 
@@ -276,9 +276,6 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   border-radius: 6px; padding: 2px 8px;
 }
-.insp-dots { display: inline-grid; grid-template-columns: repeat(2, 10px); gap: 4px 6px; vertical-align: middle; margin-inline: 8px; }
-.insp-dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink-2); }
-.insp-dots i.on { background: var(--accent); border-color: var(--accent); }
 
 /* ------------------------------ braille out ---------------------------- */
 
@@ -589,10 +586,6 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .studio-grid { gap: 14px; }
   .preview-card { order: -1; }
   .input-card textarea { height: 4.9em; }
-  .input-card .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-  .input-card .metric { padding: 7px 8px; }
-  .input-card .metric dd { font-size: .92rem; }
-  .input-card .metric dt { font-size: .7rem; }
   .inspector { min-height: 0; padding: 10px 12px; }
   .insp-grid { gap: 4px 12px; }
   .stage { min-height: 160px; }
@@ -608,4 +601,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+  html .how[open], html .btn, html .icon-btn, html .progress-bar, html .cg {
+    transition: none !important; animation: none !important;
+  }
 }

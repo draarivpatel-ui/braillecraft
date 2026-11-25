@@ -27,11 +27,13 @@ BrailleCraft is a tactile engineering studio that runs entirely in the browser w
 ### Plaque Studio UI (`app.mjs`, `index.html`, `styles.css`)
 - Live translation as you type, Grade 1 / Grade 2 toggle, cells-per-line control
 - Interactive cell inspector: hover or tap any cell in the blueprint or 3D relief to see its dots, Unicode codepoint, source text span, applied UEB rule, and mm coordinates
-- Toggleable 2D blueprint / shaded isometric relief preview drawn on a canvas with lighting and a drag-to-tilt control
+- Toggleable 2D blueprint / shaded three-quarter relief preview drawn on a canvas with lighting and a drag-to-tilt control; the canvas sizes itself to the plate so long signs stay wide and every dome stays readable
 - One-click downloads: `.stl` for PrusaSlicer / Cura / Bambu Studio, `.svg` for swell paper or laser cutting
 - Five built-in signage presets (library quiet zone, science lab eyewash, accessible restroom, STEM club room, emergency exit stairwell)
 - URL-hash shareable state (preset, text, grade, lesson, theme, mute)
 - Light/dark theme, keyboard-first ARIA tab structure, responsive from `390 px` to desktop with zero horizontal overflow
+- WCAG AA text and 3:1 control boundaries in both themes, focus rings that never hide under the sticky header, and a reduced-motion override
+- Plain print of any tab drops the controls and prints the work on white in the light palette, even from dark mode
 
 ### Community Tactile Kit (`src/kit.mjs`)
 - Turns a whole hallway of signs into one volunteer print job: three starter packs (classroom hallway, science wing, community center) or your own signs, each with a copy count

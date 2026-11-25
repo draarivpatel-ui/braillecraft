@@ -20,7 +20,7 @@ const $ = id => document.getElementById(id);
 const state = {
   tab: 'studio', grade: 2, text: 'STEM CLUB ROOM 204', maxCols: 24,
   preset: 'stem-club', lesson: 'home-row', muted: false, theme: null,
-  view3d: false, tilt: 28,
+  view3d: false, tilt: 18,
   kit: kitFromPack('classroom', 2)
 };
 let lastResult = null;
@@ -163,10 +163,10 @@ function inspect(r, c) {
     `<i class="${cell.mask & (1 << (dn - 1)) ? 'on' : ''}"></i>`).join('');
   $('inspector').innerHTML = `
     <div class="insp-grid">
-      <span class="insp-cell-face">${maskToUnicode(cell.mask)}</span>
+      <span class="dcell dcell-lg insp-cell-face" aria-hidden="true">${dotEls}</span>
       <div class="insp-rows">
-        <div><span class="insp-rule">${RULE_LABELS[cell.rule] || cell.rule}</span>
-          <span class="insp-dots">${dotEls}</span><b>${d.unicode}</b></div>
+        <div class="insp-head"><span class="insp-rule">${RULE_LABELS[cell.rule] || cell.rule}</span>
+          <span class="insp-glyph">${maskToUnicode(cell.mask)}</span><b>${d.unicode}</b></div>
         <div>source: <b>${cell.src && cell.src !== ' ' ? escapeHtml(cell.src) : '(blank)'}</b>
           · row ${r + 1}, col ${c + 1} · dots ${d.dots.join(', ') || 'none'}</div>
         <div>origin <b>${cell.x0.toFixed(2)}, ${cell.y0.toFixed(2)} mm</b> · cell ${cell.col + 1} of ${lastLayout.cols}</div>
@@ -203,7 +203,7 @@ $('tilt').addEventListener('input', () => {
   drawIso();
 });
 
-// ------------------------- isometric relief preview -------------------------
+// ------------------------ three-quarter relief preview ------------------------
 
 const isoCanvas = $('isoCanvas');
 let isoHits = []; // {sx, sy, r, c} screen-space hit targets
@@ -214,35 +214,44 @@ function cssVar(name) {
 
 function drawIso() {
   const ctx = isoCanvas.getContext('2d');
-  const w = isoCanvas.clientWidth, h = isoCanvas.clientHeight;
-  const dpr = window.devicePixelRatio || 1;
-  isoCanvas.width = w * dpr; isoCanvas.height = h * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  if (!lastLayout) return;
+  const w = isoCanvas.clientWidth;
+  if (!lastLayout || !w) return;
 
   const spec = ADA;
   const t = spec.plateThicknessMm, dh = spec.dotHeightMm, r = spec.dotBaseMm / 2;
-  const cx = lastLayout.plateW / 2, cy = lastLayout.plateH / 2;
+  const W = lastLayout.plateW, H = lastLayout.plateH;
+  const cx = W / 2, cy = H / 2;
+  // Three-quarter view: the slider turns the plate about its vertical axis
+  // and the camera looks down from a fixed 50 degree elevation, so a long
+  // sign stays wide on screen and every dome keeps a readable size.
   const th = (state.tilt * Math.PI) / 180;
   const cos = Math.cos(th), sin = Math.sin(th);
-  const ISOX = Math.cos(Math.PI / 6), ISOY = 0.5;
-
-  const proj = (x, y, z) => {
+  const ELEV = (50 * Math.PI) / 180;
+  const FY = Math.sin(ELEV), FZ = Math.cos(ELEV);
+  const turn = (x, y) => {
     const dx = x - cx, dy = y - cy;
-    const rx = dx * cos - dy * sin, ry = dx * sin + dy * cos;
-    return [(rx - ry) * ISOX, (rx + ry) * ISOY - z * 0.92];
+    return [dx * cos - dy * sin, dx * sin + dy * cos];
   };
+  const proj = (x, y, z) => { const [rx, ry] = turn(x, y); return [rx, ry * FY - z * FZ]; };
 
-  // fit projected bounds
-  const corners = [
-    proj(0, 0, 0), proj(lastLayout.plateW, 0, 0), proj(lastLayout.plateW, lastLayout.plateH, 0),
-    proj(0, lastLayout.plateH, 0), proj(cx, cy, t + dh)
-  ];
-  const bx = [Math.min(...corners.map(p => p[0])), Math.max(...corners.map(p => p[0]))];
-  const by = [Math.min(...corners.map(p => p[1])), Math.max(...corners.map(p => p[1]))];
-  const scale = Math.min((w - 60) / (bx[1] - bx[0] || 1), (h - 60) / (by[1] - by[0] || 1));
-  const ox = w / 2 - (bx[0] + bx[1]) / 2 * scale, oy = h / 2 - (by[0] + by[1]) / 2 * scale;
+  // fit projected bounds, then size the canvas to the plate's shape
+  const c = [[0, 0], [W, 0], [W, H], [0, H]];
+  const pts = c.flatMap(([x, y]) => [proj(x, y, 0), proj(x, y, t + dh)]);
+  const bx = [Math.min(...pts.map(p => p[0])), Math.max(...pts.map(p => p[0]))];
+  const by = [Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))];
+  const PAD_X = 24, PAD_TOP = 22, PAD_BOT = 44;
+  const spanX = bx[1] - bx[0] || 1, spanY = by[1] - by[0] || 1;
+  const fitH = Math.round(Math.min(380, Math.max(200, spanY * ((w - 2 * PAD_X) / spanX) + PAD_TOP + PAD_BOT)));
+  if (Math.abs(isoCanvas.clientHeight - fitH) > 1) isoCanvas.style.height = `${fitH}px`;
+  const h = isoCanvas.clientHeight || fitH;
+  const dpr = window.devicePixelRatio || 1;
+  isoCanvas.width = Math.round(w * dpr); isoCanvas.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const scale = Math.min((w - 2 * PAD_X) / spanX, (h - PAD_TOP - PAD_BOT) / spanY);
+  const ox = w / 2 - (bx[0] + bx[1]) / 2 * scale;
+  const oy = PAD_TOP + (h - PAD_TOP - PAD_BOT) / 2 - (by[0] + by[1]) / 2 * scale;
   const P = (x, y, z) => { const p = proj(x, y, z); return [ox + p[0] * scale, oy + p[1] * scale]; };
 
   const paper = cssVar('--paper') || '#f4f1ea';
@@ -251,81 +260,88 @@ function drawIso() {
   const accent = cssVar('--accent') || '#b4651f';
   const accentInk = cssVar('--accent-ink') || '#8f4f14';
 
-  // plate walls then top (painter order: far edges first is fine for a slab)
-  const c = [[0, 0], [lastLayout.plateW, 0], [lastLayout.plateW, lastLayout.plateH], [0, lastLayout.plateH]];
-  const top = c.map(([x, y]) => P(x, y, t));
+  // soft contact shadow under the slab
   const base = c.map(([x, y]) => P(x, y, 0));
-  ctx.fillStyle = shade(paper, -28);
-  ctx.beginPath();
-  for (const [a, b] of [[1, 2], [2, 3]]) { // right and near walls
-    ctx.moveTo(...top[a]); ctx.lineTo(...top[b]); ctx.lineTo(...base[b]); ctx.lineTo(...base[a]);
-  }
-  ctx.fill();
-  ctx.fillStyle = shade(paper, -14);
-  ctx.beginPath();
-  ctx.moveTo(...top[0]); ctx.lineTo(...top[1]); ctx.lineTo(...base[1]); ctx.lineTo(...base[0]);
-  ctx.fill();
+  ctx.save();
+  ctx.translate(6, 8);
+  ctx.beginPath(); ctx.moveTo(...base[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...base[i]); ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fill();
+  ctx.restore();
+
+  // side walls that face the camera, shaded by how far they turn from the light
+  const top = c.map(([x, y]) => P(x, y, t));
+  const normals = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  normals.forEach(([nx, ny], i) => {
+    const [rx, ry] = [nx * cos - ny * sin, nx * sin + ny * cos];
+    if (ry <= 0.001) return;
+    const j = (i + 1) % 4;
+    ctx.beginPath();
+    ctx.moveTo(...top[i]); ctx.lineTo(...top[j]); ctx.lineTo(...base[j]); ctx.lineTo(...base[i]); ctx.closePath();
+    ctx.fillStyle = shade(paper, rx > 0 ? -34 : -18); ctx.fill();
+    ctx.strokeStyle = line; ctx.lineWidth = 0.8; ctx.stroke();
+  });
 
   // top face
   ctx.beginPath();
   ctx.moveTo(...top[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...top[i]);
   ctx.closePath();
-  ctx.fillStyle = shade(paper, 4); ctx.fill();
+  ctx.fillStyle = shade(paper, 6); ctx.fill();
   ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.stroke();
 
   // faint row/column guides on the plate face
-  ctx.strokeStyle = line; ctx.globalAlpha = 0.5; ctx.lineWidth = 0.6;
+  ctx.strokeStyle = line; ctx.globalAlpha = 0.55; ctx.lineWidth = 0.6;
   for (let i = 1; i < lastLayout.cols; i++) {
     const x = spec.marginMm + i * spec.interCellPitchMm - spec.interCellPitchMm / 2;
-    ctx.beginPath(); ctx.moveTo(...P(x, spec.marginMm * 0.55, t)); ctx.lineTo(...P(x, lastLayout.plateH - spec.marginMm * 0.55, t)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(...P(x, spec.marginMm * 0.55, t)); ctx.lineTo(...P(x, H - spec.marginMm * 0.55, t)); ctx.stroke();
   }
   for (let i = 1; i < lastLayout.nRows; i++) {
     const y = spec.marginMm + i * spec.linePitchMm - spec.linePitchMm / 2;
-    ctx.beginPath(); ctx.moveTo(...P(spec.marginMm * 0.55, y, t)); ctx.lineTo(...P(lastLayout.plateW - spec.marginMm * 0.55, y, t)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(...P(spec.marginMm * 0.55, y, t)); ctx.lineTo(...P(W - spec.marginMm * 0.55, y, t)); ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
   // mounting holes as dark inset rings
   for (const hole of lastLayout.holes) {
     const [hx, hy] = P(hole.x, hole.y, t);
-    const hr = (spec.mountHoleDiameterMm / 2) * scale * 0.86;
-    ctx.beginPath(); ctx.ellipse(hx, hy, hr, hr * ISOY, 0, 0, Math.PI * 2);
+    const hr = (spec.mountHoleDiameterMm / 2) * scale;
+    ctx.beginPath(); ctx.ellipse(hx, hy, hr, hr * FY, 0, 0, Math.PI * 2);
     ctx.fillStyle = shade(ink, 0); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(hx, hy, hr * 0.55, hr * 0.55 * ISOY, 0, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.ellipse(hx, hy + hr * FY * 0.18, hr * 0.62, hr * 0.62 * FY, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#000'; ctx.fill();
   }
 
   // relief dots, far to near, as shaded dome caps
-  const sorted = [...lastLayout.dots].sort((a, b) => {
-    const da = (a.x - cx) * cos - (a.y - cy) * sin + ((a.x - cx) * sin + (a.y - cy) * cos);
-    const db = (b.x - cx) * cos - (b.y - cy) * sin + ((b.x - cx) * sin + (b.y - cy) * cos);
-    return da - db;
-  });
+  const depth = d => (d.x - cx) * sin + (d.y - cy) * cos;
+  const sorted = [...lastLayout.dots].sort((a, b) => depth(a) - depth(b));
   isoHits = [];
+  const rr = r * scale;
+  const lift = dh * FZ * scale;
   for (const d of sorted) {
-    const [px, py] = P(d.x, d.y, t + dh);
-    const rr = r * scale;
-    // cast shadow on plate
-    const [sx, sy] = P(d.x + 0.35, d.y + 0.35, t);
-    ctx.beginPath(); ctx.ellipse(sx, sy, rr * 1.05, rr * ISOY, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fill();
+    const [bxp, byp] = P(d.x, d.y, t);
+    const px = bxp, py = byp - lift * 0.5;
+    const ry = rr * FY + lift * 0.5;
+    // contact shadow on the plate, thrown away from the upper-left light
+    ctx.beginPath(); ctx.ellipse(bxp + rr * 0.28, byp + rr * 0.22, rr * 1.06, rr * FY * 1.06, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fill();
     // dome: radial gradient offset toward the light (upper-left)
-    const g = ctx.createRadialGradient(px - rr * 0.4, py - rr * 0.5, rr * 0.15, px, py, rr * 1.25);
+    const g = ctx.createRadialGradient(px - rr * 0.38, py - ry * 0.5, rr * 0.12, px, py, rr * 1.2);
     g.addColorStop(0, '#fff2df');
     g.addColorStop(0.45, accent);
     g.addColorStop(1, accentInk);
-    ctx.beginPath(); ctx.ellipse(px, py, rr, rr * 0.92, 0, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.ellipse(px, py, rr, ry, 0, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.32)'; ctx.lineWidth = Math.min(1, Math.max(0.5, rr * 0.18)); ctx.stroke();
     // specular fleck
-    ctx.beginPath(); ctx.ellipse(px - rr * 0.38, py - rr * 0.5, rr * 0.2, rr * 0.13, -0.6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px - rr * 0.36, py - ry * 0.42, rr * 0.22, ry * 0.15, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
     isoHits.push({ sx: px, sy: py, rr: Math.max(rr, 6), r: d.cell.row, c: d.cell.col });
   }
   ctx.fillStyle = cssVar('--ink-2');
-  ctx.font = '11px ui-monospace, Menlo, monospace';
+  ctx.font = '600 12px ui-monospace, Menlo, monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(`${lastLayout.plateW.toFixed(0)} × ${lastLayout.plateH.toFixed(0)} mm · ${lastLayout.dots.length} raised dots · ${meshTris()} triangles`, w / 2, h - 14);
+  const size = `${W.toFixed(0)} × ${H.toFixed(0)} mm`;
+  const full = `${size} · ${lastLayout.dots.length} raised dots · ${meshTris()} triangles`;
+  ctx.fillText(ctx.measureText(full).width <= w - 24 ? full : `${size} · ${lastLayout.dots.length} raised dots`, w / 2, h - 16);
 }
 
 function meshTris() { return lastMesh ? lastMesh.triangleCount : 0; }

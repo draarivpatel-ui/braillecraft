@@ -26,6 +26,7 @@ const state = {
 let lastResult = null;
 let lastLayout = null;
 let lastMesh = null;
+let inspectCursor = { r: 0, c: 0 };
 
 // ---------------------------------------------------------------------------
 // Tabs (ARIA tablist with arrow-key navigation)
@@ -139,13 +140,10 @@ function renderBrailleCells(cells) {
 function renderBlueprint() {
   const svg = toSVG(lastLayout, { caption: currentCaption() });
   $('svgStage').innerHTML = svg;
-  for (const g of $('svgStage').querySelectorAll('.cellg')) {
-    g.setAttribute('tabindex', '0');
-    g.setAttribute('role', 'img');
-    const [r, c] = g.dataset.cell.split('.').map(Number);
-    const cell = lastLayout.rows[r][c];
-    const d = describeCell(cell.mask, cell);
-    g.setAttribute('aria-label', `cell row ${r + 1} column ${c + 1}, ${d.letter || RULE_LABELS[cell.rule] || 'cell'}, dots ${d.dots.join(' ') || 'none'}`);
+  const svgNode = $('svgStage').querySelector?.('svg');
+  if (svgNode) {
+    svgNode.setAttribute('tabindex', '0');
+    svgNode.setAttribute('aria-label', 'Braille plaque blueprint. Tap anywhere or use arrow keys to inspect cells.');
   }
 }
 
@@ -158,6 +156,9 @@ function currentCaption() {
 function inspect(r, c) {
   const cell = lastLayout.rows[r]?.[c];
   if (!cell) return;
+  inspectCursor = { r, c };
+  for (const old of $('svgStage').querySelectorAll('.inspecting')) old.classList.remove('inspecting');
+  $('svgStage').querySelector?.(`[data-cell="${r}.${c}"]`)?.classList.add('inspecting');
   const d = describeCell(cell.mask, cell);
   const dotEls = [1, 4, 2, 5, 3, 6].map(dn =>
     `<i class="${cell.mask & (1 << (dn - 1)) ? 'on' : ''}"></i>`).join('');
@@ -176,13 +177,69 @@ function inspect(r, c) {
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+function blueprintPoint(e) {
+  const svg = $('svgStage').querySelector?.('svg');
+  const ctm = svg?.getScreenCTM?.();
+  if (!svg || !ctm) return null;
+  if (window.DOMPoint) {
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  }
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const p = pt.matrixTransform(ctm.inverse());
+  return { x: p.x, y: p.y };
+}
+
+function nearestBlueprintCell(e) {
+  const p = blueprintPoint(e);
+  if (!p || !lastLayout) return null;
+  const pad = 14;
+  let best = null;
+  let bestScore = Infinity;
+  for (const line of lastLayout.rows) {
+    for (const cell of line) {
+      const cx = pad + cell.x0 + ADA.intraCellPitchMm / 2;
+      const cy = pad + cell.y0 + ADA.intraCellPitchMm;
+      const dx = (p.x - cx) / ADA.interCellPitchMm;
+      const dy = (p.y - cy) / ADA.linePitchMm;
+      const score = dx * dx + dy * dy;
+      if (score < bestScore) {
+        bestScore = score;
+        best = { r: cell.row, c: cell.col };
+      }
+    }
+  }
+  return best;
+}
+
 $('svgStage').addEventListener('pointerover', e => {
   const g = e.target.closest?.('[data-cell]');
   if (g) { const [r, c] = g.dataset.cell.split('.').map(Number); inspect(r, c); }
 });
+$('svgStage').addEventListener('pointerdown', e => {
+  const hit = nearestBlueprintCell(e);
+  if (hit) inspect(hit.r, hit.c);
+});
 $('svgStage').addEventListener('focusin', e => {
-  const g = e.target.closest?.('[data-cell]');
-  if (g) { const [r, c] = g.dataset.cell.split('.').map(Number); inspect(r, c); }
+  if (e.target.closest?.('svg')) inspect(inspectCursor.r, inspectCursor.c);
+});
+$('svgStage').addEventListener('keydown', e => {
+  if (!e.target.closest?.('svg') || !lastLayout?.rows.length) return;
+  const dr = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+  const dc = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (!dr && !dc) return;
+  e.preventDefault();
+  const rows = lastLayout.rows;
+  let r = Math.min(inspectCursor.r, rows.length - 1);
+  let c = Math.min(inspectCursor.c, rows[r].length - 1);
+  if (dc) c = (c + dc + rows[r].length) % rows[r].length;
+  if (dr) {
+    r = (r + dr + rows.length) % rows.length;
+    c = Math.min(c, rows[r].length - 1);
+  }
+  inspect(r, c);
 });
 
 // 2D / 3D view toggle

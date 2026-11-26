@@ -239,9 +239,10 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .svg-stage { width: 100%; padding: 10px; display: grid; place-items: center; }
 .svg-stage svg { max-width: 100%; height: auto; display: block; }
 .svg-stage .cellhit { cursor: crosshair; }
-.svg-stage .cellg:hover .cellbox, .svg-stage .cellg:focus-visible .cellbox {
+.svg-stage .cellg:hover .cellbox, .svg-stage .cellg.inspecting .cellbox {
   stroke: var(--accent); stroke-width: .45;
 }
+.svg-stage svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (min-width: 961px) {
   /* the preview stage grows to match the input card, so no dead band sits under the inspector */
   .preview-card { display: flex; flex-direction: column; }
@@ -539,7 +540,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   body.print-handoff #panel-kit > :not(.kit-grid), body.print-handoff .kit-card { display: none !important; }
   body.print-handoff .kit-grid { display: block; }
   body.print-handoff .handoff-card { border: none; box-shadow: none; position: static; }
-  body.print-handoff .handoff { max-height: none; overflow: visible; color: #000; font-size: 10.5pt; }
+  body.print-handoff .handoff { max-height: none; overflow: visible; color: #000; font-size: 10pt; line-height: 1.38; }
   body.print-cards #panel-kit > :not(.cards-card) { display: none !important; }
   body.print-cards .cards-card { border: none; box-shadow: none; margin: 0; }
   body.print-cards #printCards, body.print-cards .study-form, body.print-cards .study-res { display: none !important; }
@@ -574,6 +575,12 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 @media (max-width: 960px) {
   .studio-grid, .trainer-grid { grid-template-columns: minmax(0, 1fr); }
   .prompt-text { font-size: 2.1rem; }
+}
+
+@media (max-width: 900px) {
+  .btn, .tab, .seg-btn, .chip, .keycap { min-width: 44px; min-height: 44px; }
+  .icon-btn, .kit-rm { min-width: 44px; min-height: 44px; }
+  input:not([type="checkbox"]):not([type="radio"]), textarea { min-height: 44px; }
 }
 
 @media (max-width: 560px) {

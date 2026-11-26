@@ -99,3 +99,28 @@ test('package.json declares node:test and module type', () => {
   assert.equal(pkg.type, 'module');
   assert.match(pkg.scripts.test, /node --test/);
 });
+
+test('mobile touch target regression keeps controls at least 44px tall', () => {
+  const block = css.match(/@media \(max-width: 900px\) \{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.ok(block.includes('.btn, .tab, .seg-btn, .chip, .keycap'), 'interactive controls are not covered');
+  assert.ok(block.includes('min-height: 44px'), '44px minimum height rule missing');
+  assert.ok(block.includes('min-width: 44px'), '44px minimum width rule missing');
+  assert.ok(block.includes('input:not([type="checkbox"])'), 'text and numeric inputs are not covered');
+});
+
+test('print handoff regression compacts the monospace sheet for one-page pagination', () => {
+  const printRule = css.match(/body\.print-handoff \.handoff \{([^}]*)\}/)?.[1] || '';
+  assert.ok(printRule.includes('font-size: 10pt'), 'print handoff font rule missing');
+  assert.ok(printRule.includes('line-height: 1.38'), 'print handoff must use compact line-height');
+});
+
+test('blueprint inspector regression uses one large touch surface with keyboard cell navigation', () => {
+  const renderBlock = app.slice(app.indexOf('function renderBlueprint()'), app.indexOf('function currentCaption()'));
+  assert.ok(!renderBlock.includes("g.setAttribute('tabindex'"), 'individual blueprint cells must not be tiny focus targets');
+  assert.ok(renderBlock.includes("svgNode.setAttribute('tabindex', '0')"), 'blueprint surface must be keyboard focusable');
+  assert.ok(app.includes("addEventListener('pointerdown'"), 'whole blueprint surface must accept touch input');
+  assert.ok(app.includes('function nearestBlueprintCell('), 'touch input must resolve the nearest cell');
+  assert.ok(app.includes("addEventListener('keydown'"), 'arrow-key cell navigation missing');
+  assert.ok(css.includes('.cellg.inspecting .cellbox'), 'selected cell highlight missing');
+  assert.ok(html.includes('Hover or tap the blueprint'), 'inspector instructions must match the large touch surface');
+});

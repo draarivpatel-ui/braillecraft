@@ -54,6 +54,13 @@ export function presetById(id) {
 // ---------------------------------------------------------------------------
 
 const HASH_VERSION = 1;
+// Share links are input as much as output. Cap each decoded field at the same
+// size the UI can legitimately produce so a hostile hash cannot make bootstrap
+// lay out or parse an unbounded plaque or kit.
+export const MAX_SHARE_TEXT_LENGTH = 240;
+export const MAX_SHARE_TEXT_PARAM_LENGTH = 1024;
+export const MAX_SHARE_KIT_BYTES = 6144;
+export const MAX_SHARE_KIT_PARAM_LENGTH = 8192;
 
 function b64urlEncode(str) {
   const bytes = new TextEncoder().encode(str);
@@ -109,11 +116,23 @@ export function decodeHash(hash) {
       const th = p.get('th');
       if (th === 'd' || th === 'l') out.theme = th === 'd' ? 'dark' : 'light';
     }
-    if (p.has('t')) out.text = b64urlDecode(p.get('t'));
+    if (p.has('t')) {
+      const encoded = p.get('t');
+      if (encoded.length <= MAX_SHARE_TEXT_PARAM_LENGTH) {
+        const text = b64urlDecode(encoded);
+        if (text.length <= MAX_SHARE_TEXT_LENGTH) out.text = text;
+      }
+    }
     if (p.has('k')) {
       // The kit is returned raw; callers pass it through normalizeKit. A
-      // broken kit drops only itself, not the rest of the hash.
-      try { out.kit = JSON.parse(b64urlDecode(p.get('k'))); } catch { /* ignore bad kit */ }
+      // broken or overbound kit drops only itself, not the rest of the hash.
+      const encoded = p.get('k');
+      if (encoded.length <= MAX_SHARE_KIT_PARAM_LENGTH) {
+        try {
+          const packed = b64urlDecode(encoded);
+          if (new TextEncoder().encode(packed).length <= MAX_SHARE_KIT_BYTES) out.kit = JSON.parse(packed);
+        } catch { /* ignore bad kit */ }
+      }
     }
   } catch {
     return {};

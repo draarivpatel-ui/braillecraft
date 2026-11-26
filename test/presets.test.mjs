@@ -84,6 +84,32 @@ test('hash never contains raw unicode text', () => {
   assert.ok(!h.includes('☃'));
   assert.ok(h.startsWith('#'));
 });
+test('overlong share text is dropped before layout', () => {
+  const h = encodeHash({ text: 'A'.repeat(5000) });
+  assert.equal(decodeHash(h).text, undefined);
+});
+
+test('maximum UI-sized share text still round-trips', () => {
+  const text = 'é'.repeat(240);
+  assert.equal(decodeHash(encodeHash({ text })).text, text);
+});
+
+test('overbound kit JSON is dropped before JSON parsing or normalization', () => {
+  const hugeKit = { items: Array.from({ length: 1000 }, () => ['X'.repeat(200), 20]) };
+  const h = encodeHash({ kit: hugeKit });
+  assert.equal(decodeHash(h).kit, undefined);
+});
+
+test('a maximum legitimate kit still round-trips through the bounded codec', () => {
+  const kit = {
+    grade: 2,
+    items: Array.from({ length: 16 }, (_, i) => [`Sign ${i} ${'é'.repeat(38)}`, 20]),
+    roles: { design: 'A', print: 'B', check: 'C', mount: 'D' },
+  };
+  const back = decodeHash(encodeHash({ kit }));
+  assert.equal(back.kit.items.length, 16);
+});
+
 test('lesson id must match safe pattern', () => {
   assert.equal(decodeHash('#l=__proto__').lesson, undefined);
 });

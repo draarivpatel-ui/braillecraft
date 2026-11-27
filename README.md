@@ -2,7 +2,7 @@
 
 **Offline UEB braille translator, ADA tactile plaque generator (STL + SVG), and 6-key Perkins chord trainer: zero dependencies, 100% client-side.**
 
-Live demo: `https://aariv.me/braillecraft/`
+Live demo: `https://aariv.xyz/braillecraft/`
 
 BrailleCraft is a tactile engineering studio that runs entirely in the browser with no build step, no CDNs, no fonts, and no network calls. Type text, get real Unified English Braille (Grade 1 or Grade 2 contracted), lay it out on an ADA-compliant tactile plaque, export a watertight 3D-printable STL and a millimetre-true SVG blueprint, and practice embossing chords on a simulated Perkins Brailler.
 
